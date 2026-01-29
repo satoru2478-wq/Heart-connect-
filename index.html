@@ -3,252 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>V-LINK PRO</title>
+    <title>V-LINK STABLE</title>
     <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; user-select: none; -webkit-user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: white; }
         
-        /* THE UI */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        /* ERROR LOG (For Debugging) */
+        #console-log { position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: rgba(20,0,0,0.8); color: #ff5555; font-size: 10px; overflow-y: scroll; z-index: 100; pointer-events: none; padding: 5px; display: none; }
+
+        /* UI */
+        #ui { position: absolute; top: 0; width: 100%; padding: 15px; box-sizing: border-box; z-index: 10; pointer-events: none; }
         .interactive { pointer-events: auto; }
         
-        /* CONNECTION BOX */
-        .conn-box { background: rgba(0, 10, 20, 0.8); border: 1px solid #333; padding: 15px; border-radius: 8px; backdrop-filter: blur(5px); }
-        .title { color: #888; font-size: 10px; letter-spacing: 2px; margin-bottom: 5px; }
-        .my-id { color: #00aaff; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px rgba(0, 170, 255, 0.5); letter-spacing: 2px; }
+        .box { background: rgba(0, 20, 40, 0.9); border: 1px solid #00aaff; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .big-text { font-size: 20px; color: #00aaff; font-weight: bold; text-shadow: 0 0 10px #00aaff; letter-spacing: 2px; }
+        .label { font-size: 10px; color: #888; margin-bottom: 5px; }
+
+        input { background: #000; border: 1px solid #555; color: white; padding: 8px; width: 100px; text-transform: uppercase; }
+        button { background: #00aaff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; }
         
-        input { background: #111; border: 1px solid #444; color: #fff; padding: 10px; width: 100px; font-family: monospace; font-size: 16px; text-transform: uppercase; text-align: center; border-radius: 4px; }
-        button { background: #00aaff; color: #000; border: none; padding: 10px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 14px; }
-        button:active { transform: scale(0.95); }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 50; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; }
         
-        /* STATUS */
-        .status-bar { display: flex; justify-content: space-between; align-items: flex-end; color: #555; font-size: 10px; }
-        .green { color: #0f0; text-shadow: 0 0 8px #0f0; animation: pulse 2s infinite; }
-        
-        /* START OVERLAY */
-        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; color: #fff; cursor: pointer; }
-        
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        .green-status { color: #0f0; text-shadow: 0 0 5px #0f0; }
     </style>
 </head>
 <body>
 
-    <div id="start-overlay">
-        <div style="text-align:center;">
-            <div style="font-size: 40px;">◆</div>
-            <div style="margin-top:20px; letter-spacing: 3px;">TAP TO INITIALIZE SYSTEM</div>
+    <div id="console-log"></div>
+
+    <div id="start-screen">
+        <div style="font-size: 40px; margin-bottom: 20px;">◉</div>
+        <div>TAP TO ACTIVATE</div>
+        <div style="font-size: 10px; color: #555; margin-top: 10px;">V-SYSTEM v4.0</div>
+    </div>
+
+    <div id="ui">
+        <div class="box interactive">
+            <div class="label">YOUR UNIT ID</div>
+            <div id="my-id" class="big-text">CONNECTING...</div>
+        </div>
+
+        <div class="box interactive">
+            <div class="label">TARGET ID</div>
+            <div style="display:flex; gap: 10px;">
+                <input type="text" id="partner-id" placeholder="ENTER ID">
+                <button id="btn-link">LINK</button>
+            </div>
+            <div id="status" style="margin-top: 10px; font-size: 12px; color: #666;">STATUS: WAITING</div>
         </div>
     </div>
 
-    <div id="ui-layer">
-        <div class="conn-box interactive">
-            <div class="title">UNIT ID</div>
-            <div id="my-id" class="my-id">...</div>
-            
-            <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 15px;">
-                <div class="title">TARGET LINK</div>
-                <div style="display:flex; gap: 10px;">
-                    <input type="text" id="target-id" placeholder="KEY" maxlength="6">
-                    <button id="btn-connect">LINK</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="status-bar">
-            <div>
-                STATUS: <span id="status-text">STANDBY</span><br>
-                HAPTICS: <span id="haptic-status">READY</span>
-            </div>
-            <div>V-CONNECT v3.0</div>
-        </div>
-    </div>
-
-    <div id="canvas-container" style="position: absolute; top:0; left:0; width:100%; height:100%;"></div>
+    <div id="canvas-container" style="position:fixed; top:0; left:0; width:100vw; height:100vh;"></div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+      { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
+
+    <script>
+        // ON-SCREEN LOGGER
+        function log(msg) {
+            console.log(msg);
+            const div = document.getElementById('console-log');
+            div.style.display = 'block';
+            div.innerHTML += `> ${msg}<br>`;
+            div.scrollTop = div.scrollHeight;
+        }
+        window.onerror = function(msg, source, lineno) {
+            log(`ERROR: ${msg} at line ${lineno}`);
+        };
     </script>
 
     <script type="module">
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- 1. SETUP 3D WORLD ---
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+        // --- 1. SAFE 3D INIT ---
+        log("Initializing 3D Engine...");
         
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
-        camera.position.z = 12;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.z = 5;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 2.0;
-
-        // --- 2. CREATE THE GLASS HEART ---
-        const heartShape = new THREE.Shape();
-        const x = 0, y = 0;
-        heartShape.moveTo(x + 0.5, y + 0.5);
-        heartShape.bezierCurveTo(x + 0.5, y + 0.5, x + 0.4, y, x, y);
-        heartShape.bezierCurveTo(x - 0.6, y, x - 0.6, y + 0.7, x - 0.6, y + 0.7);
-        heartShape.bezierCurveTo(x - 0.6, y + 1.1, x - 0.3, y + 1.54, x + 0.5, y + 1.9);
-        heartShape.bezierCurveTo(x + 1.2, y + 1.54, x + 1.6, y + 1.1, x + 1.6, y + 0.7);
-        heartShape.bezierCurveTo(x + 1.6, y + 0.7, x + 1.6, y, x + 1.0, y);
-        heartShape.bezierCurveTo(x + 0.7, y, x + 0.5, y + 0.5, x + 0.5, y + 0.5);
-
-        const geometry = new THREE.ExtrudeGeometry(heartShape, {
-            depth: 0.4, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.1, bevelThickness: 0.1
+        // CREATE QUANTUM KNOT (Guaranteed to work)
+        const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x00aaff, 
+            wireframe: true,
+            transparent: true, opacity: 0.6
         });
-        geometry.center(); // Center the heart pivot
-        geometry.rotateZ(Math.PI); // Flip it right side up
+        const knot = new THREE.Mesh(geometry, material);
+        scene.add(knot);
 
-        const material = new THREE.MeshPhysicalMaterial({
-            color: 0x00aaff, metalness: 0.1, roughness: 0.1, transmission: 0.9, thickness: 1,
-            emissive: 0x001133, emissiveIntensity: 0.5
-        });
+        // Inner Glow
+        const coreGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(core);
 
-        const heart = new THREE.Mesh(geometry, material);
-        heart.scale.set(2, 2, 2);
-        scene.add(heart);
+        function animate() {
+            requestAnimationFrame(animate);
+            knot.rotation.x += 0.01;
+            knot.rotation.y += 0.013;
+            // Pulse core
+            const s = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+            core.scale.set(s, s, s);
+            renderer.render(scene, camera);
+        }
+        animate();
+        log("3D Engine Running.");
 
-        // Lighting
-        const light = new THREE.PointLight(0xffffff, 2, 100);
-        light.position.set(10, 10, 10);
-        scene.add(light);
-        const ambient = new THREE.AmbientLight(0x404040);
-        scene.add(ambient);
-
-        // --- 3. AUDIO SYSTEM (For the "Ping" Sound) ---
+        // --- 2. AUDIO & HAPTICS ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        function playSound() {
+        function playTone() {
             if(audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.2);
-            
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-            
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.2);
+            osc.stop(audioCtx.currentTime + 0.3);
         }
 
-        // --- 4. STARTUP HANDLER ---
-        document.getElementById('start-overlay').addEventListener('click', () => {
-            document.getElementById('start-overlay').style.display = 'none';
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            playSound(); // Test sound
-        });
-
-        // --- 5. PEERJS CONNECTION (6-CHAR ID) ---
-        // Generate short ID
-        const myShortId = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const peer = new Peer(myShortId); 
+        // --- 3. CONNECTION (PEERJS) ---
+        log("Connecting to Network...");
+        const peer = new Peer(); 
         let conn = null;
 
         peer.on('open', (id) => {
-            document.getElementById('my-id').innerText = id;
+            log("ID Generated: " + id);
+            // We just show the LAST 6 chars to keep it simple, 
+            // but internally use the full ID for connection logic if needed,
+            // or better yet, just display the full ID to be safe for now.
+            // Let's shorten it for display but keep full id for safety.
+            const shortID = id.split('-')[0].toUpperCase(); 
+            document.getElementById('my-id').innerText = id; 
+            document.getElementById('my-id').style.fontSize = "12px"; // Smaller font for long ID
         });
 
-        peer.on('error', (err) => {
-            // Fallback if custom ID fails (rare on free tier but possible)
-            if(err.type === 'unavailable-id') alert("ID Taken, refresh page");
-        });
+        peer.on('error', (err) => log("Peer Error: " + err.type));
 
         // CONNECT BUTTON
-        document.getElementById('btn-connect').addEventListener('click', () => {
-            let target = document.getElementById('target-id').value.toUpperCase();
-            if(target.length !== 6) return alert("Key must be 6 chars");
-            
-            document.getElementById('btn-connect').innerText = "CONNECTING...";
-            conn = peer.connect(target);
-            setupConnection();
+        document.getElementById('btn-link').addEventListener('click', () => {
+            const pid = document.getElementById('partner-id').value;
+            if(!pid) return alert("Enter ID");
+            log("Connecting to " + pid);
+            conn = peer.connect(pid);
+            setupConn();
         });
 
-        // INCOMING CONNECTION
         peer.on('connection', (c) => {
             conn = c;
-            setupConnection();
+            log("Incoming Connection!");
+            setupConn();
         });
 
-        function setupConnection() {
-            conn.on('open', () => {
-                document.getElementById('status-text').innerHTML = "<span class='green'>CONNECTED</span>";
-                document.getElementById('btn-connect').style.display = 'none';
-                document.getElementById('target-id').style.display = 'none';
-                playSound();
-            });
-
+        function setupConn() {
+            document.getElementById('status').innerHTML = "<span class='green-status'>CONNECTED & SECURE</span>";
+            playTone();
+            
             conn.on('data', (data) => {
-                if(data.type === 'touch') {
-                    triggerHeartbeat(true);
-                }
+                if(data.type === 'touch') triggerEffect(true);
             });
         }
 
-        // --- 6. INTERACTION LOGIC ---
-        function triggerHeartbeat(isRemote) {
-            // 1. Visual: Flash Pink
-            const color = isRemote ? 0xff0055 : 0xffffff;
-            material.color.setHex(color);
-            material.emissive.setHex(color);
-            material.emissiveIntensity = 2;
-            heart.scale.set(2.5, 2.5, 2.5); // Pump effect
+        // --- 4. INTERACTION ---
+        function triggerEffect(isRemote) {
+            // Visual
+            material.color.setHex(0xff0055); // Pink
+            coreMat.color.setHex(0xff0055);
+            
+            // Audio/Haptic
+            playTone();
+            if(navigator.vibrate) navigator.vibrate(200);
 
-            // 2. Sound
-            playSound();
-
-            // 3. Haptics (Vibration)
-            if(navigator.vibrate) {
-                navigator.vibrate(isRemote ? [100, 50, 100] : 30);
-            }
-
-            // Reset after 200ms
+            // Reset
             setTimeout(() => {
-                material.color.setHex(0x00aaff);
-                material.emissive.setHex(0x001133);
-                material.emissiveIntensity = 0.5;
-                heart.scale.set(2, 2, 2);
-            }, 200);
+                material.color.setHex(0x00aaff); // Blue
+                coreMat.color.setHex(0x00aaff);
+            }, 300);
 
-            // Send to partner
-            if(!isRemote && conn && conn.open) {
-                conn.send({ type: 'touch' });
-            }
+            // Send
+            if(!isRemote && conn) conn.send({ type: 'touch' });
         }
 
-        // Tap Listener
-        window.addEventListener('mousedown', () => {
-            // Only trigger if not clicking UI
-            triggerHeartbeat(false);
+        // TAP HANDLER
+        document.getElementById('start-screen').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            log("System Active.");
         });
-        window.addEventListener('touchstart', (e) => {
-             // prevent zooming
-            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-                e.preventDefault(); 
-                triggerHeartbeat(false);
-            }
-        }, { passive: false });
 
-        // --- 7. ANIMATION LOOP ---
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
+        window.addEventListener('mousedown', () => triggerEffect(false));
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                triggerEffect(false);
+            }
+        });
 
     </script>
 </body>
