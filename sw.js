@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-strong-stable-v17'; 
+const CACHE_NAME = 'v-test-reset-v19'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
