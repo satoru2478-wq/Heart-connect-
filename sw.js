@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-clean-slate-v26'; 
+const CACHE_NAME = 'v-vd-update-v28'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
