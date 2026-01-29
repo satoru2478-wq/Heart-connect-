@@ -3,23 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SOUL LINK V23</title>
-    <link {
-  "name": "Soul Link",
-  "short_name": "Soul Link",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/1077/1077035.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
-}
-" href="./manifest.json">
+    <title>SOUL LINK V26</title>
+    
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1077/1077035.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1077/1077035.png">
+    <link rel="manifest" href="./manifest.json">
+
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
         
@@ -32,46 +21,37 @@
             pointer-events: none; transition: opacity 1s; width: 100%; text-align: center;
         }
 
-        /* UI CENTER */
         #ui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 50; transition: opacity 1s ease-in-out;
+            z-index: 50; transition: opacity 0.5s;
         }
 
         .glass-card {
-            background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(15, 15, 15, 0.95); border: 1px solid rgba(255,255,255,0.1);
             backdrop-filter: blur(20px); padding: 30px; border-radius: 24px; text-align: center; 
-            width: 80%; max-width: 320px; position: relative; pointer-events: auto;
+            width: 85%; max-width: 320px; position: relative; pointer-events: auto;
         }
 
-        .status { margin-top: 15px; font-size: 10px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+        .status { margin-top: 15px; font-size: 12px; color: #aaa; letter-spacing: 1px; font-weight: bold; }
         .active-status { color: #00ff66; text-shadow: 0 0 15px #00ff66; }
-        .searching-status { color: #00ccff; animation: pulseText 2s infinite; }
-
-        @keyframes pulseText { 0% {opacity:0.5;} 50% {opacity:1;} 100% {opacity:0.5;} }
+        .error-status { color: #ff4444; }
 
         input { 
-            background: #000; border: 1px solid #333; color: #fff; padding: 12px; 
-            width: 100%; border-radius: 10px; text-align: center; font-size: 16px; 
-            outline: none; text-transform: uppercase; margin-bottom: 10px;
+            background: #000; border: 1px solid #444; color: #fff; padding: 15px; 
+            width: 100%; border-radius: 10px; text-align: center; font-size: 18px; 
+            outline: none; text-transform: uppercase; margin-bottom: 15px;
         }
 
         button { 
-            background: #fff; color: #000; border: none; padding: 12px; 
-            width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 5px;
-        }
-        
-        #btn-install {
-            background: linear-gradient(135deg, #00c6ff, #0072ff); color: #fff;
-            margin-bottom: 15px; display: none; 
+            background: #fff; color: #000; border: none; padding: 15px; 
+            width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px;
         }
 
-        /* Small Reset Link (Only visible if stuck) */
-        #reset-link {
-            position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
-            color: #444; font-size: 9px; text-decoration: underline; cursor: pointer;
-            white-space: nowrap;
+        /* RESET BUTTON */
+        #btn-hard-reset {
+            margin-top: 25px; font-size: 11px; color: #ff4444; 
+            border: 1px solid #ff4444; background: none; padding: 8px 15px; border-radius: 20px;
         }
 
         #action-bar {
@@ -100,25 +80,22 @@
     <div id="ui">
         <div class="glass-card">
             
-            <button id="btn-install">⬇ INSTALL APP</button>
-
-            <div id="setup-container">
-                <div style="color:#666; font-size:10px; letter-spacing:3px; margin-bottom:15px;">SETUP SOUL LINK</div>
-                
-                <div id="step-1">
-                    <input type="text" id="my-custom-id" placeholder="CREATE YOUR NAME" maxlength="10">
-                    <button onclick="createMyId()">NEXT</button>
-                </div>
-
-                <div id="step-2" class="hidden">
-                    <input type="text" id="partner-id" placeholder="PARTNER NAME" maxlength="10">
-                    <button id="btn-link">CONNECT PERMANENTLY</button>
-                </div>
+            <div id="step-1">
+                <div style="color:#888; font-size:10px; margin-bottom:10px;">STEP 1: YOUR NAME</div>
+                <input type="text" id="my-name" placeholder="E.G. KING" maxlength="10">
+                <button onclick="setMyName()">CONFIRM IDENTITY</button>
             </div>
 
-            <div id="status" class="status">INITIALIZING...</div>
+            <div id="step-2" class="hidden">
+                <div style="color:#666; font-size:10px; margin-bottom:10px;">STEP 2: CONNECT TO</div>
+                <div id="welcome-msg" style="color:#fff; margin-bottom:15px; font-size: 14px;"></div>
+                <input type="text" id="partner-name" placeholder="E.G. QUEEN" maxlength="10">
+                <button onclick="connectManual()">CONNECT NOW</button>
+            </div>
+
+            <div id="status" class="status">v26 CLEAN SLATE</div>
             
-            <div id="reset-link" onclick="resetApp()">RESET IDENTITY</div>
+            <button id="btn-hard-reset" onclick="hardReset()">⚠ RESET APP DATA</button>
         </div>
     </div>
 
@@ -132,101 +109,106 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
-        // --- 1. INSTALLER ---
-        let deferredPrompt; const installBtn = document.getElementById('btn-install');
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block'; });
-        installBtn.addEventListener('click', () => { 
-            installBtn.style.display='none'; 
-            if(deferredPrompt) { deferredPrompt.prompt(); deferredPrompt=null; } 
-            else alert("Use Share -> Add to Home Screen"); 
-        });
-
-        // --- 2. AUTO-RESURRECT LOGIC ---
+        // --- 1. CLEAN START LOGIC ---
         let peer, conn;
-        const savedMyId = localStorage.getItem('v-my-custom-id');
-        const savedPartnerId = localStorage.getItem('v-partner-custom-id');
+        let myId = localStorage.getItem('v26_my_id'); // New storage key to force reset
 
-        // IF DATA EXISTS: SKIP SETUP, AUTO-CONNECT
-        if(savedMyId && savedPartnerId) {
-            document.getElementById('setup-container').classList.add('hidden'); // Hide inputs
-            document.getElementById('status').innerText = "RESURRECTING LINK...";
-            document.getElementById('status').className = "status searching-status";
-            initPeer(savedMyId);
-            // Start connecting immediately
-            setTimeout(() => connect(savedPartnerId), 500);
-        } 
-        else if (savedMyId) {
-            // Partially setup (Name set, but no partner)
-            document.getElementById('step-1').classList.add('hidden');
-            document.getElementById('step-2').classList.remove('hidden');
-            initPeer(savedMyId);
-            document.getElementById('status').innerText = "ENTER PARTNER NAME";
+        if (myId) {
+            showConnectScreen();
         }
 
-        function createMyId() {
-            const id = document.getElementById('my-custom-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-            if(!id) return;
-            localStorage.setItem('v-my-custom-id', id);
-            document.getElementById('step-1').classList.add('hidden');
-            document.getElementById('step-2').classList.remove('hidden');
-            initPeer(id);
+        function setMyName() {
+            const val = document.getElementById('my-name').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!val) return alert("Please enter a name");
+            myId = val;
+            localStorage.setItem('v26_my_id', myId);
+            showConnectScreen();
         }
 
-        document.getElementById('btn-link').addEventListener('click', () => {
-            const pid = document.getElementById('partner-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-            if(!pid) return;
-            localStorage.setItem('v-partner-custom-id', pid);
-            // Reload page to trigger clean auto-connect logic
-            location.reload(); 
-        });
+        function showConnectScreen() {
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            document.getElementById('welcome-msg').innerText = "Logged in as: " + myId;
+            
+            // Init Network Immediately
+            if (!peer) initPeer(myId);
+        }
 
-        function resetApp() { if(confirm("Reset Everything?")) { localStorage.clear(); location.reload(); } }
+        function hardReset() {
+            if(confirm("Are you sure? This will delete all settings.")) {
+                localStorage.clear();
+                // Force reload ignoring cache
+                window.location.reload(true);
+            }
+        }
 
+        // --- 2. NETWORK LOGIC ---
         function initPeer(id) {
-            peer = new Peer(id, { debug: 1 });
+            document.getElementById('status').innerText = "REGISTERING NETWORK...";
+            
+            peer = new Peer(id, {
+                debug: 1,
+                config: {'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]}
+            });
+
+            peer.on('open', (id) => {
+                document.getElementById('status').innerText = "ONLINE. READY TO PAIR.";
+            });
+
             peer.on('error', (err) => {
-                // SILENT RETRY (No scary red text)
-                console.log(err.type);
-                if(err.type === 'peer-unavailable' || err.type === 'network') {
-                     document.getElementById('status').innerText = "SEARCHING FOR PARTNER...";
-                     // Retry connection in 2 seconds
-                     setTimeout(() => { 
-                         const target = localStorage.getItem('v-partner-custom-id');
-                         if(target) connect(target); 
-                     }, 2000);
+                console.log(err);
+                if (err.type === 'unavailable-id') {
+                    // This means the ID is taken. Likely by an old tab.
+                    document.getElementById('status').innerText = "ID BUSY. CLOSE OTHER TABS.";
+                    document.getElementById('status').className = "status error-status";
+                } else {
+                    document.getElementById('status').innerText = "NET ERROR: " + err.type;
+                    document.getElementById('status').className = "status error-status";
                 }
             });
-            peer.on('connection', (c) => handle(c));
+
+            peer.on('connection', (c) => {
+                // Incoming Connection
+                handleConnection(c);
+            });
         }
 
-        function connect(pid) {
-            // Only update status if not already connected
-            if(!conn || !conn.open) document.getElementById('status').innerText = "SEARCHING FOR " + pid + "...";
-            const c = peer.connect(pid);
-            handle(c);
+        function connectManual() {
+            const target = document.getElementById('partner-name').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!target) return alert("Enter partner name");
+            
+            document.getElementById('status').innerText = "SEARCHING FOR " + target + "...";
+            const c = peer.connect(target);
+            handleConnection(c);
         }
 
-        let pingInterval;
-        function handle(c) {
+        let keepAlive;
+        function handleConnection(c) {
+            // Check if already connected to prevent double-connect loops
+            if (conn && conn.open) return;
+            
             conn = c;
+
             conn.on('open', () => {
-                // SUCCESS!
                 document.getElementById('status').innerText = "CONNECTED FOREVER";
                 document.getElementById('status').className = "status active-status";
                 
-                // Hide Install Button if connected
-                installBtn.style.display = 'none';
-
-                // HIDE UI
+                // Hide Setup UI
+                document.getElementById('step-2').classList.add('hidden');
+                document.getElementById('btn-hard-reset').style.display = 'none'; // Hide reset
+                document.getElementById('action-bar').classList.add('show');
+                
+                // Fade out card
                 setTimeout(() => {
-                    const ui = document.getElementById('ui');
-                    ui.style.opacity = '0'; 
-                    setTimeout(() => { ui.style.display = 'none'; document.getElementById('action-bar').classList.add('show'); }, 1000);
+                    document.getElementById('ui').style.opacity = 0;
+                    setTimeout(() => { document.getElementById('ui').style.display = 'none'; }, 500);
                 }, 1000);
 
-                trigger('touch', true); // Pulse to confirm
-                if(pingInterval) clearInterval(pingInterval);
-                pingInterval = setInterval(() => { if(conn.open) conn.send({type:'ping'}); }, 4000);
+                trigger('touch', true);
+
+                // Start Heartbeat Ping
+                if(keepAlive) clearInterval(keepAlive);
+                keepAlive = setInterval(() => { if(conn.open) conn.send({type:'ping'}); }, 4000);
             });
 
             conn.on('data', (d) => {
@@ -235,10 +217,11 @@
             });
 
             conn.on('close', () => {
-                // If dropped, bring UI back briefly or just keep trying silently
-                // Let's keep trying silently to be less annoying
-                const target = localStorage.getItem('v-partner-custom-id');
-                if(target) setTimeout(() => connect(target), 1000);
+                document.getElementById('ui').style.display = 'flex';
+                document.getElementById('ui').style.opacity = 1;
+                document.getElementById('status').innerText = "DISCONNECTED. RECONNECT MANUALLY.";
+                document.getElementById('status').className = "status error-status";
+                document.getElementById('step-2').classList.remove('hidden');
             });
         }
 
