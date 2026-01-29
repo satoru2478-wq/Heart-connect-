@@ -3,80 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GLASS HEART</title>
-    <link rel="manifest" href="./manifest.json">
+    <title>GLASS HEART v8</title> <link rel="manifest" href="./manifest.json">
+    <script>
+        // --- KILL SWITCH: FORCE UPDATE ---
+        // This deletes the old "Offline Mode" so you get fresh code
+        if(window.navigator && navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations()
+            .then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+            caches.keys().then(names => {
+                for (let name of names) caches.delete(name);
+            });
+        }
+    </script>
     <style>
-        body { margin: 0; overflow: hidden; background: #0a0a0a; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
         
-        /* BACKGROUND GRADIENT (To make glass look good) */
-        #bg-glow {
+        /* BACKGROUND */
+        #bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            background: radial-gradient(circle, #1a1a2e 0%, #000 100%);
             z-index: -1;
         }
 
-        /* GLASS UI CONTAINER */
+        /* GLASS UI */
         #ui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; transition: opacity 1s ease, transform 1s ease;
+            z-index: 10; transition: opacity 1s;
         }
 
-        /* THE GLASS CARD */
-        .glass-panel {
+        .glass {
             background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-            padding: 40px; border-radius: 24px;
-            width: 85%; max-width: 320px;
-            text-align: center;
+            padding: 40px; border-radius: 20px;
+            text-align: center; width: 80%; max-width: 300px;
         }
 
-        .title { color: rgba(255,255,255,0.6); font-size: 11px; letter-spacing: 3px; margin-bottom: 20px; font-weight: 600; text-transform: uppercase; }
+        .key { font-size: 30px; color: #fff; letter-spacing: 5px; margin: 20px 0; font-weight: 300; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
+        .label { color: #888; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+
+        input { background: rgba(0,0,0,0.5); border: 1px solid #444; color: #fff; padding: 15px; width: 100%; border-radius: 10px; text-align: center; font-size: 18px; margin-bottom: 10px; outline: none; box-sizing: border-box; text-transform: uppercase; }
         
-        .my-key { font-size: 32px; color: #fff; font-weight: 200; letter-spacing: 4px; margin-bottom: 30px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        button { background: #fff; color: #000; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        input {
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15);
-            color: #fff; padding: 15px; width: 100%; border-radius: 12px;
-            font-size: 18px; text-align: center; outline: none;
-            box-sizing: border-box; margin-bottom: 15px; text-transform: uppercase;
-            letter-spacing: 2px; transition: 0.3s;
-        }
-        input:focus { border-color: #fff; background: rgba(0,0,0,0.6); }
+        .hidden { opacity: 0; pointer-events: none; }
 
-        button {
-            background: rgba(255,255,255,0.9); color: #000; border: none;
-            width: 100%; padding: 15px; border-radius: 12px;
-            font-size: 14px; font-weight: 700; letter-spacing: 1px;
-            cursor: pointer; transition: 0.2s;
-        }
-        button:active { transform: scale(0.98); opacity: 0.8; }
-
-        .status { margin-top: 20px; font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 1px; }
-
-        /* HIDE UI CLASS */
-        .vanish { opacity: 0; pointer-events: none; transform: scale(0.9); }
-
-        canvas { display: block; position: absolute; top:0; left:0; z-index: 1; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
     </style>
 </head>
 <body>
 
-    <div id="bg-glow"></div>
+    <div id="bg"></div>
 
     <div id="ui">
-        <div class="glass-panel">
-            <div class="title">Soul Frequency</div>
-            
-            <div id="my-id" class="my-key">...</div>
+        <div class="glass">
+            <div class="label">Your Frequency</div>
+            <div id="my-id" class="key">...</div>
             
             <input type="text" id="partner-id" placeholder="PARTNER KEY" maxlength="6">
-            <button id="btn-link">CONNECT HEARTS</button>
-            
-            <div id="status" class="status">WAITING FOR SIGNAL</div>
+            <button id="btn-link">CONNECT</button>
+            <div id="status" style="margin-top:15px; font-size: 10px; color: #555;">v8.0 READY</div>
         </div>
     </div>
 
@@ -85,7 +77,6 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
-        // --- 1. CANVAS SETUP ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let w, h, cx, cy;
@@ -99,158 +90,90 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- 2. AUDIO (Beautiful Chime) ---
+        // --- AUDIO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
         function playChime() {
             if(audioCtx.state === 'suspended') audioCtx.resume();
-            
             const now = audioCtx.currentTime;
-            // Major chord: F, A, C (F Major)
-            [349.23, 440.00, 523.25].forEach((freq, i) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                
-                gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(0.15, now + 0.1); 
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                osc.start(now);
-                osc.stop(now + 2.0);
+            [349.23, 440.00, 523.25].forEach(f => {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = 'sine'; o.frequency.value = f;
+                g.gain.setValueAtTime(0, now);
+                g.gain.linearRampToValueAtTime(0.1, now + 0.1);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 2);
+                o.connect(g); g.connect(audioCtx.destination);
+                o.start(now); o.stop(now + 2);
             });
         }
 
-        // --- 3. HEART ANIMATION ---
+        // --- HEART ---
         let hue = 0;
-        let pulse = 0; // Scale factor for heartbeat
-        
-        function drawHeart(x, y, size, color) {
+        let pulse = 0;
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+            hue += 0.2;
+            let color = `hsl(${hue}, 60%, 60%)`;
+            if(pulse > 0.01) color = `hsl(${hue}, 90%, ${60 + pulse * 30}%)`;
+
             ctx.save();
-            ctx.translate(x, y);
-            
-            // Pulse logic
-            const scale = size + (pulse * 20); 
-            
+            ctx.translate(cx, cy);
+            const scale = 50 + (pulse * 30);
             ctx.beginPath();
-            // Standard Heart Formula for Canvas
-            // Top Curve Left
             ctx.moveTo(0, -scale * 0.3);
             ctx.bezierCurveTo(-scale * 0.5, -scale * 0.8, -scale, -scale * 0.5, -scale, 0);
-            // Bottom Curve Left
             ctx.bezierCurveTo(-scale, scale * 0.5, -scale * 0.5, scale * 0.8, 0, scale * 1.2);
-            // Bottom Curve Right
             ctx.bezierCurveTo(scale * 0.5, scale * 0.8, scale, scale * 0.5, scale, 0);
-            // Top Curve Right
             ctx.bezierCurveTo(scale, -scale * 0.5, scale * 0.5, -scale * 0.8, 0, -scale * 0.3);
-            
             ctx.fillStyle = color;
-            ctx.shadowBlur = 50 + (pulse * 30);
+            ctx.shadowBlur = 40 + pulse * 40;
             ctx.shadowColor = color;
             ctx.fill();
             ctx.restore();
-        }
 
-        function animate() {
-            ctx.clearRect(0, 0, w, h);
-            
-            // Increment Color
-            hue += 0.2; 
-            if(hue > 360) hue = 0;
-            
-            // Determine Color (Cycle or Flash)
-            let color = `hsl(${hue}, 70%, 60%)`;
-            if (pulse > 0.01) {
-                // Blend White/Pink when touched
-                color = `hsl(${hue}, 90%, ${60 + (pulse * 30)}%)`;
-            }
-
-            drawHeart(cx, cy, 60, color); // 60 is base size
-
-            // Decay pulse
             pulse *= 0.94;
-
-            requestAnimationFrame(animate);
+            requestAnimationFrame(draw);
         }
-        animate();
+        draw();
 
-        // --- 4. INTERACTION ---
-        function triggerHeartbeat(isRemote) {
-            // Visual Pulse
-            pulse = 1.0; 
-            
-            // Audio
+        // --- INTERACTION ---
+        function trigger(isRemote) {
+            pulse = 1.0;
             playChime();
-            
-            // Vibration (Strong)
-            if(navigator.vibrate) {
-                navigator.vibrate(200); 
-            }
+            if(navigator.vibrate) navigator.vibrate(200);
         }
 
         window.addEventListener('pointerdown', (e) => {
-            // Don't trigger if touching UI inputs
             if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-            
             if(audioCtx.state === 'suspended') audioCtx.resume();
-            
-            triggerHeartbeat(false);
-            
+            trigger(false);
             if(conn && conn.open) conn.send({ type: 'touch' });
         });
 
-        // --- 5. CONNECTION ---
+        // --- CONNECT ---
         let peer, conn;
-
-        function init() {
-            const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-            peer = new Peer(id);
-
-            peer.on('open', (id) => {
-                document.getElementById('my-id').innerText = id;
-            });
-
-            peer.on('connection', (c) => {
-                handleConn(c);
-            });
-            
-            peer.on('error', (err) => {
-                document.getElementById('status').innerText = "ERROR. RETRYING...";
-            });
-        }
-
-        function handleConn(c) {
-            conn = c;
-            conn.on('open', () => {
-                // HIDE UI ON CONNECT
-                document.getElementById('ui').classList.add('vanish');
-                triggerHeartbeat(true);
-            });
-            conn.on('data', (data) => {
-                if(data.type === 'touch') triggerHeartbeat(true);
-            });
-        }
-
+        const id = Math.random().toString(36).substring(2, 8).toUpperCase();
+        peer = new Peer(id);
+        
+        peer.on('open', (id) => document.getElementById('my-id').innerText = id);
+        peer.on('connection', (c) => handle(c));
+        
         document.getElementById('btn-link').addEventListener('click', () => {
             const pid = document.getElementById('partner-id').value.toUpperCase();
             if(!pid) return;
-            document.getElementById('btn-link').innerText = "CONNECTING...";
-            const c = peer.connect(pid);
-            handleConn(c);
+            document.getElementById('btn-link').innerText = "...";
+            handle(peer.connect(pid));
         });
 
-        init();
-
-        // SW Update
-        if('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then(reg => reg.update());
+        function handle(c) {
+            conn = c;
+            conn.on('open', () => {
+                document.getElementById('ui').classList.add('hidden');
+                trigger(true);
+            });
+            conn.on('data', () => trigger(true));
         }
-
     </script>
 </body>
 </html>
