@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-void-heart-v9'; 
+const CACHE_NAME = 'v-soft-touch-v16'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
