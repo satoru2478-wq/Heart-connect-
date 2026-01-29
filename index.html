@@ -3,34 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>V-LINK INSTANT</title>
+    <title>SOUL LINK</title>
     <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; touch-action: none; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; user-select: none; font-family: sans-serif; }
         
-        /* UI LAYER */
+        /* MINIMAL UI - Fades out when not used */
         #ui {
-            position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
+            position: absolute; top: 0; left: 0; width: 100%; padding: 20px;
             box-sizing: border-box; pointer-events: none; z-index: 10;
+            transition: opacity 0.5s;
         }
         .interactive { pointer-events: auto; }
         
-        .panel {
-            background: rgba(0, 15, 25, 0.9); border: 1px solid #004466;
-            padding: 12px; border-radius: 6px; margin-bottom: 10px;
-            color: #fff; text-shadow: 0 0 5px #00aaff;
-            backdrop-filter: blur(5px);
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            color: #fff; backdrop-filter: blur(10px);
+            text-align: center;
         }
         
-        .label { font-size: 10px; color: #6688aa; margin-bottom: 5px; letter-spacing: 1px; }
-        .id-text { font-size: 22px; font-weight: bold; color: #fff; letter-spacing: 2px; }
+        .id-display { font-size: 24px; letter-spacing: 3px; font-weight: 300; opacity: 0.9; }
         
-        input { background: #001122; border: 1px solid #005577; color: #fff; padding: 8px; width: 100px; text-transform: uppercase; font-family: monospace; border-radius: 4px; }
-        button { background: #00aaff; color: #000; border: none; padding: 8px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        button:active { opacity: 0.8; }
+        input { 
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); 
+            color: #fff; padding: 10px; width: 100px; text-align: center; 
+            border-radius: 8px; font-size: 16px; letter-spacing: 2px;
+            text-transform: uppercase; outline: none;
+        }
         
-        #status { font-size: 10px; color: #555; margin-top: 8px; text-transform: uppercase; }
-        .connected { color: #0f0 !important; text-shadow: 0 0 8px #0f0; }
+        button { 
+            background: rgba(255,255,255,0.2); color: #fff; border: none; 
+            padding: 10px 20px; border-radius: 8px; font-size: 14px; 
+            cursor: pointer; transition: background 0.2s;
+        }
+        button:active { background: rgba(255,255,255,0.4); }
+        
+        #status { font-size: 10px; margin-top: 8px; opacity: 0.5; letter-spacing: 1px; }
+        .active { color: #ff99cc; text-shadow: 0 0 10px #ff0055; opacity: 1 !important; }
         
         canvas { display: block; }
     </style>
@@ -38,22 +49,20 @@
 <body>
 
     <div id="ui">
-        <div class="panel interactive">
-            <div class="label">UNIT ID</div>
-            <div id="my-id" class="id-text">CONNECTING...</div>
+        <div class="glass-panel interactive">
+            <div style="font-size: 10px; opacity: 0.5; margin-bottom: 5px;">YOUR SOUL KEY</div>
+            <div id="my-id" class="id-display">...</div>
         </div>
 
-        <div class="panel interactive">
-            <div class="label">ESTABLISH LINK</div>
-            <div style="display:flex; gap: 8px;">
-                <input type="text" id="partner-id" placeholder="ENTER KEY" maxlength="6">
-                <button id="btn-link">LINK</button>
+        <div class="glass-panel interactive">
+            <div style="display:flex; gap: 10px; justify-content: center;">
+                <input type="text" id="partner-id" placeholder="PARTNER KEY" maxlength="6">
+                <button id="btn-link">CONNECT</button>
             </div>
-            <div id="status">STATUS: STANDBY</div>
+            <div id="status">WAITING FOR CONNECTION...</div>
         </div>
-        
-        <div style="font-size: 10px; color: #334455; margin-top: 5px; text-align: center;">
-            TAP SCREEN TO TEST SIGNAL
+        <div style="text-align: center; font-size: 10px; color: #555; margin-top: 20px;">
+            Touch anywhere to feel
         </div>
     </div>
 
@@ -62,140 +71,161 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
-        // --- 1. SETUP CANVAS (2D) ---
+        // --- 1. CANVAS SETUP ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let width, height, centerX, centerY;
+        let w, h, cx, cy;
         
         function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            centerX = width / 2;
-            centerY = height / 2;
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            cx = w / 2;
+            cy = h / 2;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // --- 2. AUDIO & VIBRATION (Auto-unlocks on first touch) ---
+        // --- 2. AUDIO (Soft Heartbeat) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let audioUnlocked = false;
         
-        function unlockAudio() {
-            if (!audioUnlocked && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-                audioUnlocked = true;
-            }
-        }
-
-        function beep(freq = 600) {
-            unlockAudio(); // Ensure audio works
+        function playHeartbeat() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
+            const filter = audioCtx.createBiquadFilter();
+            
+            // Low Sine wave for "Thud" sound
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(60, audioCtx.currentTime); 
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
+            
+            // Filter to make it muffled/soft
+            filter.type = 'lowpass';
+            filter.frequency.value = 150;
+
+            // Volume Envelope
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            
+            osc.connect(filter);
+            filter.connect(gain);
             gain.connect(audioCtx.destination);
             
-            // Sci-fi Chirp
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
-            
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-            
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.stop(audioCtx.currentTime + 0.2);
         }
 
-        // --- 3. ANIMATION LOGIC ---
+        // --- 3. FLUID ANIMATION ---
+        let time = 0;
         let ripples = [];
-        let heartScale = 1;
-        let heartColor = '#00aaff'; // Blue
-        let isPulse = false;
+        let pulseIntensity = 0;
+        let colorHue = 0; // For color cycling
 
         function draw() {
-            // Fade effect trail
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.fillRect(0, 0, width, height);
+            // Soft Trail Background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(0, 0, w, h);
 
-            // Draw Ripples
+            time += 0.05;
+            colorHue += 0.2; // Slowly shift color
+            
+            // Base Color (Cycling)
+            // HSL: Hue moves 0-360. 
+            // Remote touch forces a specific Pink/Red spike
+            let mainColor = `hsl(${colorHue % 360}, 70%, 60%)`;
+            if(pulseIntensity > 0.1) {
+                mainColor = `hsl(340, 100%, ${50 + pulseIntensity * 20}%)`; // Flash Pink/White
+            }
+
+            // 1. Draw Ripples (Smooth Rings)
             for(let i = ripples.length - 1; i >= 0; i--) {
                 const r = ripples[i];
                 ctx.beginPath();
                 ctx.arc(r.x, r.y, r.size, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(${r.c}, ${r.life})`;
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = `hsla(${r.hue}, 80%, 60%, ${r.life})`;
+                ctx.lineWidth = 2 * r.life; // Lines get thinner as they fade
                 ctx.stroke();
-                r.size += 8; // Speed of expansion
-                r.life -= 0.03; // Fade out speed
+                
+                r.size += 5; // Expand
+                r.life -= 0.015; // Slow fade
                 if(r.life <= 0) ripples.splice(i, 1);
             }
 
-            // Draw "Core" (The Heart)
-            const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.05;
-            const size = 30 * heartScale * pulse;
+            // 2. Draw Fluid Core (Blob Logic)
+            ctx.save();
+            ctx.translate(cx, cy);
             
-            // Glow
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = heartColor;
-            
+            // Calculate blob shape
             ctx.beginPath();
-            ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
-            ctx.fillStyle = heartColor;
+            const points = 12; // Smoothness
+            const radius = 50 + (pulseIntensity * 30); // Pulse size
+            
+            for (let i = 0; i <= points; i++) {
+                const angle = (i / points) * Math.PI * 2;
+                // Blob math: Base Radius + Sine wave noise
+                const noise = Math.sin(angle * 3 + time) * 5 + Math.cos(angle * 5 - time) * 5;
+                const r = radius + noise;
+                const x = Math.cos(angle) * r;
+                const y = Math.sin(angle) * r;
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+
+            // Glow Effect
+            ctx.shadowBlur = 40 + (pulseIntensity * 40);
+            ctx.shadowColor = mainColor;
+            ctx.fillStyle = mainColor;
             ctx.fill();
             
-            ctx.shadowBlur = 0; // Reset
+            ctx.restore();
 
-            // Reset effects slowly
-            if(heartScale > 1) heartScale *= 0.9;
-            if(isPulse && heartScale < 1.1) {
-                 heartColor = '#00aaff'; 
-                 isPulse = false;
-            }
+            // Calm down pulse
+            if(pulseIntensity > 0) pulseIntensity *= 0.92;
 
             requestAnimationFrame(draw);
         }
-        draw(); // Start loop immediately
+        draw();
 
-        function triggerEffect(x, y, isRemote) {
-            // Add Ripple
-            const colorRGB = isRemote ? '255, 0, 100' : '0, 170, 255'; // Pink vs Blue
-            ripples.push({ x: x || centerX, y: y || centerY, size: 20, life: 1, c: colorRGB });
-            
-            // Pulse Core
-            heartScale = 2.5;
-            heartColor = isRemote ? '#ff0066' : '#ffffff';
-            isPulse = true;
+        function triggerLove(x, y, isRemote) {
+            // Visuals
+            pulseIntensity = 1.0;
+            const h = isRemote ? 340 : (colorHue % 360); // Pink if her, Current color if me
+            ripples.push({ x: x || cx, y: y || cy, size: 40, life: 1, hue: h });
 
-            // Audio/Haptic
-            beep(isRemote ? 800 : 400);
-            if(navigator.vibrate) navigator.vibrate(isRemote ? [50, 50, 150] : 10);
+            // Sound
+            playHeartbeat();
+
+            // Haptics (Vibration)
+            // Pattern: Soft "Thud-Thud"
+            if(navigator.vibrate) {
+                try {
+                    navigator.vibrate(isRemote ? [30, 50, 30] : 10);
+                } catch(e) {}
+            }
         }
 
-        // --- 4. NETWORKING (PeerJS - Auto Init) ---
+        // --- 4. NETWORKING ---
         let peer, conn;
 
+        // Auto-Init
         try {
-            // Generate simple ID immediately
             const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
             peer = new Peer(shortId);
 
             peer.on('open', (id) => {
                 document.getElementById('my-id').innerText = id;
             });
-
-            peer.on('error', (err) => {
-                document.getElementById('status').innerText = "NET ERROR: " + err.type;
-            });
-
+            
             peer.on('connection', (c) => {
                 conn = c;
                 setupConn();
             });
 
-        } catch(e) {
-            document.getElementById('status').innerText = "INIT ERROR";
-        }
+        } catch(e) { console.log(e); }
 
-        // Connect Button
         document.getElementById('btn-link').addEventListener('click', () => {
             const pid = document.getElementById('partner-id').value.toUpperCase();
             if(!pid) return;
@@ -205,30 +235,29 @@
         });
 
         function setupConn() {
-            document.getElementById('status').innerText = "LINK ESTABLISHED";
-            document.getElementById('status').className = "connected";
-            document.getElementById('btn-link').innerText = "OK";
+            document.getElementById('status').innerText = "❤ SOUL LINK ACTIVE";
+            document.getElementById('status').className = "active";
+            document.getElementById('btn-link').style.display = 'none'; // Hide button
             
-            // Visual confirmation
-            triggerEffect(centerX, centerY, true);
+            // Send test pulse
+            triggerLove(cx, cy, true);
 
             conn.on('data', (data) => {
-                if(data.type === 'touch') triggerEffect(centerX, centerY, true);
+                if(data.type === 'love') triggerLove(cx, cy, true);
             });
         }
 
-        // --- 5. INPUT HANDLING ---
+        // --- 5. INTERACTION ---
         window.addEventListener('pointerdown', (e) => {
-            // Unlock audio on first touch
-            unlockAudio();
+            // Unlock audio engine
+            if(audioCtx.state === 'suspended') audioCtx.resume();
 
-            // Ignore if clicking UI
             if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             
-            triggerEffect(e.clientX, e.clientY, false);
+            triggerLove(e.clientX, e.clientY, false);
             
             if(conn && conn.open) {
-                conn.send({ type: 'touch' });
+                conn.send({ type: 'love' });
             }
         });
 
