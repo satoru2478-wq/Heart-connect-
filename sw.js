@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-soul-v6'; // New version ID
+const CACHE_NAME = 'v-glass-heart-v7'; // Updated Version
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
