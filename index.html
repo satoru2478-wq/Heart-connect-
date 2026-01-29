@@ -3,21 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>V-LINK 2D</title>
+    <title>V-LINK INSTANT</title>
     <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; touch-action: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; touch-action: none; user-select: none; }
         
-        /* START SCREEN */
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #00aaff; cursor: pointer;
-        }
-        .blink { animation: flash 1s infinite; }
-        @keyframes flash { 50% { opacity: 0; } }
-
         /* UI LAYER */
         #ui {
             position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
@@ -26,41 +16,44 @@
         .interactive { pointer-events: auto; }
         
         .panel {
-            background: rgba(0, 20, 30, 0.8); border: 1px solid #005577;
-            padding: 10px; border-radius: 4px; margin-bottom: 10px;
+            background: rgba(0, 15, 25, 0.9); border: 1px solid #004466;
+            padding: 12px; border-radius: 6px; margin-bottom: 10px;
             color: #fff; text-shadow: 0 0 5px #00aaff;
+            backdrop-filter: blur(5px);
         }
         
-        input { background: #001122; border: 1px solid #005577; color: #fff; padding: 5px; width: 80px; text-transform: uppercase; }
-        button { background: #00aaff; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
+        .label { font-size: 10px; color: #6688aa; margin-bottom: 5px; letter-spacing: 1px; }
+        .id-text { font-size: 22px; font-weight: bold; color: #fff; letter-spacing: 2px; }
         
-        #status { font-size: 10px; color: #555; margin-top: 5px; }
-        .connected { color: #0f0 !important; text-shadow: 0 0 10px #0f0; }
-
+        input { background: #001122; border: 1px solid #005577; color: #fff; padding: 8px; width: 100px; text-transform: uppercase; font-family: monospace; border-radius: 4px; }
+        button { background: #00aaff; color: #000; border: none; padding: 8px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        button:active { opacity: 0.8; }
+        
+        #status { font-size: 10px; color: #555; margin-top: 8px; text-transform: uppercase; }
+        .connected { color: #0f0 !important; text-shadow: 0 0 8px #0f0; }
+        
         canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="start-screen">
-        <div style="font-size: 50px;">⏻</div>
-        <div style="margin-top: 20px;" class="blink">TAP TO ACTIVATE SYSTEM</div>
-        <div id="error-log" style="font-size: 10px; color: red; margin-top: 20px; max-width: 80%;"></div>
-    </div>
-
-    <div id="ui" style="display:none;">
+    <div id="ui">
         <div class="panel interactive">
-            <div style="font-size: 10px; color: #888;">UNIT ID</div>
-            <div id="my-id" style="font-size: 18px; font-weight: bold;">GENERATING...</div>
+            <div class="label">UNIT ID</div>
+            <div id="my-id" class="id-text">CONNECTING...</div>
         </div>
 
         <div class="panel interactive">
-            <div style="font-size: 10px; color: #888;">TARGET CONNECTION</div>
-            <div style="display:flex; gap: 5px;">
-                <input type="text" id="partner-id" placeholder="ID">
+            <div class="label">ESTABLISH LINK</div>
+            <div style="display:flex; gap: 8px;">
+                <input type="text" id="partner-id" placeholder="ENTER KEY" maxlength="6">
                 <button id="btn-link">LINK</button>
             </div>
             <div id="status">STATUS: STANDBY</div>
+        </div>
+        
+        <div style="font-size: 10px; color: #334455; margin-top: 5px; text-align: center;">
+            TAP SCREEN TO TEST SIGNAL
         </div>
     </div>
 
@@ -69,11 +62,6 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
-        // --- ERROR LOGGING ---
-        function logError(msg) {
-            document.getElementById('error-log').innerText = "SYSTEM MSG: " + msg;
-        }
-
         // --- 1. SETUP CANVAS (2D) ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -88,21 +76,33 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- 2. AUDIO & VIBRATION ---
+        // --- 2. AUDIO & VIBRATION (Auto-unlocks on first touch) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioUnlocked = false;
         
-        function beep(freq = 600, type = 'sine') {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
+        function unlockAudio() {
+            if (!audioUnlocked && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+                audioUnlocked = true;
+            }
+        }
+
+        function beep(freq = 600) {
+            unlockAudio(); // Ensure audio works
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.type = type;
-            osc.frequency.value = freq;
+            
+            // Sci-fi Chirp
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
+            osc.stop(audioCtx.currentTime + 0.1);
         }
 
         // --- 3. ANIMATION LOGIC ---
@@ -112,107 +112,93 @@
         let isPulse = false;
 
         function draw() {
-            // Clear Screen with fade effect
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            // Fade effect trail
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             ctx.fillRect(0, 0, width, height);
 
-            // 1. Draw Ripples
+            // Draw Ripples
             for(let i = ripples.length - 1; i >= 0; i--) {
                 const r = ripples[i];
                 ctx.beginPath();
                 ctx.arc(r.x, r.y, r.size, 0, Math.PI * 2);
                 ctx.strokeStyle = `rgba(${r.c}, ${r.life})`;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 3;
                 ctx.stroke();
-                r.size += 5; // Expand
-                r.life -= 0.02; // Fade
+                r.size += 8; // Speed of expansion
+                r.life -= 0.03; // Fade out speed
                 if(r.life <= 0) ripples.splice(i, 1);
             }
 
-            // 2. Draw "Core" (The Heart)
-            const pulse = 1 + Math.sin(Date.now() * 0.003) * 0.1;
+            // Draw "Core" (The Heart)
+            const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.05;
             const size = 30 * heartScale * pulse;
+            
+            // Glow
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = heartColor;
             
             ctx.beginPath();
             ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
             ctx.fillStyle = heartColor;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = heartColor;
             ctx.fill();
+            
             ctx.shadowBlur = 0; // Reset
 
-            // 3. Reset effects slowly
-            if(heartScale > 1) heartScale *= 0.95;
+            // Reset effects slowly
+            if(heartScale > 1) heartScale *= 0.9;
             if(isPulse && heartScale < 1.1) {
-                 heartColor = '#00aaff'; // Return to blue
+                 heartColor = '#00aaff'; 
                  isPulse = false;
             }
 
             requestAnimationFrame(draw);
         }
-        draw();
+        draw(); // Start loop immediately
 
         function triggerEffect(x, y, isRemote) {
             // Add Ripple
-            const colorRGB = isRemote ? '255, 0, 85' : '0, 170, 255'; // Pink vs Blue
-            ripples.push({ x: x || centerX, y: y || centerY, size: 10, life: 1, c: colorRGB });
+            const colorRGB = isRemote ? '255, 0, 100' : '0, 170, 255'; // Pink vs Blue
+            ripples.push({ x: x || centerX, y: y || centerY, size: 20, life: 1, c: colorRGB });
             
             // Pulse Core
-            heartScale = 2.0;
-            heartColor = isRemote ? '#ff0055' : '#ffffff';
+            heartScale = 2.5;
+            heartColor = isRemote ? '#ff0066' : '#ffffff';
             isPulse = true;
 
             // Audio/Haptic
-            beep(isRemote ? 800 : 400, isRemote ? 'square' : 'sine');
-            if(navigator.vibrate) navigator.vibrate(isRemote ? [50, 50, 100] : 15);
+            beep(isRemote ? 800 : 400);
+            if(navigator.vibrate) navigator.vibrate(isRemote ? [50, 50, 150] : 10);
         }
 
-        // --- 4. START SEQUENCE ---
-        document.getElementById('start-screen').addEventListener('click', function() {
-            // Unlock Audio
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            beep(400); 
-            
-            // Switch UI
-            this.style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            
-            // Init Network
-            initNetwork();
-        });
-
-        // --- 5. NETWORKING (PeerJS) ---
+        // --- 4. NETWORKING (PeerJS - Auto Init) ---
         let peer, conn;
 
-        function initNetwork() {
-            try {
-                // Generate simple ID
-                const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                peer = new Peer(shortId);
+        try {
+            // Generate simple ID immediately
+            const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+            peer = new Peer(shortId);
 
-                peer.on('open', (id) => {
-                    document.getElementById('my-id').innerText = id;
-                });
+            peer.on('open', (id) => {
+                document.getElementById('my-id').innerText = id;
+            });
 
-                peer.on('error', (err) => {
-                    logError("NET ERROR: " + err.type);
-                    document.getElementById('status').innerText = "NET ERROR: RETRY";
-                });
+            peer.on('error', (err) => {
+                document.getElementById('status').innerText = "NET ERROR: " + err.type;
+            });
 
-                peer.on('connection', (c) => {
-                    conn = c;
-                    setupConn();
-                });
+            peer.on('connection', (c) => {
+                conn = c;
+                setupConn();
+            });
 
-            } catch(e) {
-                logError(e.message);
-            }
+        } catch(e) {
+            document.getElementById('status').innerText = "INIT ERROR";
         }
 
         // Connect Button
         document.getElementById('btn-link').addEventListener('click', () => {
             const pid = document.getElementById('partner-id').value.toUpperCase();
-            if(!pid) return alert("Enter ID");
+            if(!pid) return;
             document.getElementById('btn-link').innerText = "...";
             conn = peer.connect(pid);
             setupConn();
@@ -221,9 +207,9 @@
         function setupConn() {
             document.getElementById('status').innerText = "LINK ESTABLISHED";
             document.getElementById('status').className = "connected";
-            document.getElementById('btn-link').innerText = "LINKED";
+            document.getElementById('btn-link').innerText = "OK";
             
-            // Send a test ping
+            // Visual confirmation
             triggerEffect(centerX, centerY, true);
 
             conn.on('data', (data) => {
@@ -231,8 +217,11 @@
             });
         }
 
-        // --- 6. INPUT HANDLING ---
+        // --- 5. INPUT HANDLING ---
         window.addEventListener('pointerdown', (e) => {
+            // Unlock audio on first touch
+            unlockAudio();
+
             // Ignore if clicking UI
             if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             
