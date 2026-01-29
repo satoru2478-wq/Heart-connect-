@@ -3,75 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LIQUID SOUL</title>
+    <title>GLASS HEART</title>
     <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #0a0a0a; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
         
-        /* MODERN GLASS UI */
-        #ui-container {
+        /* BACKGROUND GRADIENT (To make glass look good) */
+        #bg-glow {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            z-index: -1;
+        }
+
+        /* GLASS UI CONTAINER */
+        #ui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; pointer-events: none;
-            transition: opacity 0.8s ease;
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 30px; border-radius: 20px;
-            width: 80%; max-width: 300px;
-            text-align: center; pointer-events: auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10; transition: opacity 1s ease, transform 1s ease;
         }
 
-        .title { color: #fff; font-size: 12px; letter-spacing: 4px; opacity: 0.7; margin-bottom: 20px; font-weight: 600; }
-        .id-display { color: #fff; font-size: 28px; font-weight: 300; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        /* THE GLASS CARD */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            padding: 40px; border-radius: 24px;
+            width: 85%; max-width: 320px;
+            text-align: center;
+        }
+
+        .title { color: rgba(255,255,255,0.6); font-size: 11px; letter-spacing: 3px; margin-bottom: 20px; font-weight: 600; text-transform: uppercase; }
+        
+        .my-key { font-size: 32px; color: #fff; font-weight: 200; letter-spacing: 4px; margin-bottom: 30px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
 
         input {
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 12px; width: 100%; box-sizing: border-box;
-            border-radius: 10px; font-size: 18px; text-align: center;
-            outline: none; transition: 0.3s;
-            text-transform: uppercase; margin-bottom: 10px;
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; padding: 15px; width: 100%; border-radius: 12px;
+            font-size: 18px; text-align: center; outline: none;
+            box-sizing: border-box; margin-bottom: 15px; text-transform: uppercase;
+            letter-spacing: 2px; transition: 0.3s;
         }
-        input:focus { border-color: #fff; background: rgba(0,0,0,0.5); }
+        input:focus { border-color: #fff; background: rgba(0,0,0,0.6); }
 
         button {
-            background: linear-gradient(135deg, #fff 0%, #ccc 100%);
-            color: #000; border: none; width: 100%; padding: 12px;
-            border-radius: 10px; font-weight: bold; font-size: 14px;
-            cursor: pointer; transition: transform 0.2s;
+            background: rgba(255,255,255,0.9); color: #000; border: none;
+            width: 100%; padding: 15px; border-radius: 12px;
+            font-size: 14px; font-weight: 700; letter-spacing: 1px;
+            cursor: pointer; transition: 0.2s;
         }
-        button:active { transform: scale(0.96); }
+        button:active { transform: scale(0.98); opacity: 0.8; }
 
-        #status-text { color: #888; font-size: 10px; margin-top: 15px; letter-spacing: 1px; }
-        
-        /* Hide UI when connected */
-        .hidden { opacity: 0; pointer-events: none; }
-        
-        canvas { display: block; }
+        .status { margin-top: 20px; font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 1px; }
+
+        /* HIDE UI CLASS */
+        .vanish { opacity: 0; pointer-events: none; transform: scale(0.9); }
+
+        canvas { display: block; position: absolute; top:0; left:0; z-index: 1; }
     </style>
 </head>
 <body>
 
-    <div id="ui-container">
-        <div class="glass-card">
-            <div class="title">SOUL LINK</div>
+    <div id="bg-glow"></div>
+
+    <div id="ui">
+        <div class="glass-panel">
+            <div class="title">Soul Frequency</div>
             
-            <div id="my-id" class="id-display">...</div>
+            <div id="my-id" class="my-key">...</div>
             
-            <div id="connect-form">
-                <input type="text" id="partner-id" placeholder="PARTNER KEY" maxlength="6">
-                <button id="btn-link">CONNECT</button>
-            </div>
+            <input type="text" id="partner-id" placeholder="PARTNER KEY" maxlength="6">
+            <button id="btn-link">CONNECT HEARTS</button>
             
-            <div id="status-text">INITIALIZING...</div>
-        </div>
-        <div style="position:absolute; bottom: 30px; color: rgba(255,255,255,0.3); font-size: 11px;">
-            Tap anywhere to interact
+            <div id="status" class="status">WAITING FOR SIGNAL</div>
         </div>
     </div>
 
@@ -80,156 +85,134 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
-        // --- 1. BUTTERY SMOOTH CANVAS ---
+        // --- 1. CANVAS SETUP ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let width, height, cx, cy;
-        
+        let w, h, cx, cy;
+
         function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            cx = width / 2;
-            cy = height / 2;
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            cx = w / 2;
+            cy = h / 2;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // --- 2. LOUD & CLEAR AUDIO (CHORD) ---
+        // --- 2. AUDIO (Beautiful Chime) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playChime() {
             if(audioCtx.state === 'suspended') audioCtx.resume();
             
             const now = audioCtx.currentTime;
-            
-            // Create 3 oscillators for a "Major Chord" (Root, 3rd, 5th)
-            // This makes it richer and easier to hear on phone speakers
-            const freqs = [300, 375, 450]; 
-            
-            freqs.forEach((f, i) => {
+            // Major chord: F, A, C (F Major)
+            [349.23, 440.00, 523.25].forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 
-                osc.type = 'sine'; // Sine is smooth
-                osc.frequency.value = f;
+                osc.type = 'sine';
+                osc.frequency.value = freq;
                 
-                // Volume Envelope (Fade in/out)
                 gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(0.2, now + 0.05); // Attack
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5); // Long Release
+                gain.gain.linearRampToValueAtTime(0.15, now + 0.1); 
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
                 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 
                 osc.start(now);
-                osc.stop(now + 1.5);
+                osc.stop(now + 2.0);
             });
         }
 
-        // --- 3. LIQUID CORE LOGIC ---
-        let time = 0;
-        let pulse = 0;
-        let hue = 0; // Continuous color cycle
-
-        function draw() {
-            // Clear screen (No trails, clean look)
-            ctx.clearRect(0, 0, width, height);
-            
-            time += 0.02; // Speed of liquid flow
-            hue += 0.5; // Speed of color change
-            
-            // Calculate Current Color
-            // If pulsing (remote touch), flash White, otherwise cycle colors
-            let color = `hsl(${hue % 360}, 80%, 60%)`;
-            if (pulse > 0.05) {
-                // Blend with white based on pulse strength
-                color = `hsl(${hue % 360}, 100%, ${60 + (pulse * 40)}%)`;
-            }
-
-            // Draw Liquid Core
+        // --- 3. HEART ANIMATION ---
+        let hue = 0;
+        let pulse = 0; // Scale factor for heartbeat
+        
+        function drawHeart(x, y, size, color) {
             ctx.save();
-            ctx.translate(cx, cy);
+            ctx.translate(x, y);
+            
+            // Pulse logic
+            const scale = size + (pulse * 20); 
+            
             ctx.beginPath();
+            // Standard Heart Formula for Canvas
+            // Top Curve Left
+            ctx.moveTo(0, -scale * 0.3);
+            ctx.bezierCurveTo(-scale * 0.5, -scale * 0.8, -scale, -scale * 0.5, -scale, 0);
+            // Bottom Curve Left
+            ctx.bezierCurveTo(-scale, scale * 0.5, -scale * 0.5, scale * 0.8, 0, scale * 1.2);
+            // Bottom Curve Right
+            ctx.bezierCurveTo(scale * 0.5, scale * 0.8, scale, scale * 0.5, scale, 0);
+            // Top Curve Right
+            ctx.bezierCurveTo(scale, -scale * 0.5, scale * 0.5, -scale * 0.8, 0, -scale * 0.3);
             
-            // "Buttery Smooth" Math
-            // We use 100 points for a high-resolution curve
-            const points = 100; 
-            const baseRadius = (width < height ? width : height) * 0.25; // Responsive size
-            const size = baseRadius + (pulse * 50); // Expand on touch
-            
-            for (let i = 0; i <= points; i++) {
-                const angle = (i / points) * Math.PI * 2;
-                
-                // Superposition of Sine Waves creates organic "Water" shape
-                const noise = Math.sin(angle * 3 + time) * 15 
-                            + Math.cos(angle * 5 - time * 1.5) * 10
-                            + Math.sin(angle * 7 + time * 0.5) * 5;
-                            
-                const r = size + noise;
-                const x = Math.cos(angle) * r;
-                const y = Math.sin(angle) * r;
-                
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            
-            ctx.closePath();
-            
-            // Glow Effect
-            ctx.shadowBlur = 60;
-            ctx.shadowColor = color;
             ctx.fillStyle = color;
+            ctx.shadowBlur = 50 + (pulse * 30);
+            ctx.shadowColor = color;
             ctx.fill();
-            
             ctx.restore();
-
-            // Decay pulse smoothly
-            pulse *= 0.92;
-
-            requestAnimationFrame(draw);
         }
-        draw();
+
+        function animate() {
+            ctx.clearRect(0, 0, w, h);
+            
+            // Increment Color
+            hue += 0.2; 
+            if(hue > 360) hue = 0;
+            
+            // Determine Color (Cycle or Flash)
+            let color = `hsl(${hue}, 70%, 60%)`;
+            if (pulse > 0.01) {
+                // Blend White/Pink when touched
+                color = `hsl(${hue}, 90%, ${60 + (pulse * 30)}%)`;
+            }
+
+            drawHeart(cx, cy, 60, color); // 60 is base size
+
+            // Decay pulse
+            pulse *= 0.94;
+
+            requestAnimationFrame(animate);
+        }
+        animate();
 
         // --- 4. INTERACTION ---
-        function triggerTouch(isRemote) {
-            // Visual
+        function triggerHeartbeat(isRemote) {
+            // Visual Pulse
             pulse = 1.0; 
             
             // Audio
             playChime();
             
-            // Haptics (Strong Vibration)
+            // Vibration (Strong)
             if(navigator.vibrate) {
-                // 200ms is usually the max single burst allowed
                 navigator.vibrate(200); 
             }
         }
 
         window.addEventListener('pointerdown', (e) => {
-            // Don't trigger if clicking UI buttons
+            // Don't trigger if touching UI inputs
             if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             
-            // Unlock audio context on first touch
             if(audioCtx.state === 'suspended') audioCtx.resume();
             
-            triggerTouch(false);
+            triggerHeartbeat(false);
             
-            // Send to partner
             if(conn && conn.open) conn.send({ type: 'touch' });
         });
 
-        // --- 5. STABLE CONNECTION ---
+        // --- 5. CONNECTION ---
         let peer, conn;
 
-        function initNetwork() {
-            // Generate Random 6-Char Key
+        function init() {
             const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-            
             peer = new Peer(id);
 
             peer.on('open', (id) => {
                 document.getElementById('my-id').innerText = id;
-                document.getElementById('status-text').innerText = "READY TO PAIR";
             });
 
             peer.on('connection', (c) => {
@@ -237,35 +220,33 @@
             });
             
             peer.on('error', (err) => {
-                document.getElementById('status-text').innerText = "NET ERROR: RETRY";
+                document.getElementById('status').innerText = "ERROR. RETRYING...";
             });
         }
-        
+
         function handleConn(c) {
             conn = c;
             conn.on('open', () => {
-                // Connected! Hide UI for immersion
-                document.getElementById('ui-container').classList.add('hidden');
-                triggerTouch(true); // Confirmation pulse
+                // HIDE UI ON CONNECT
+                document.getElementById('ui').classList.add('vanish');
+                triggerHeartbeat(true);
             });
-            
             conn.on('data', (data) => {
-                if(data.type === 'touch') triggerTouch(true);
+                if(data.type === 'touch') triggerHeartbeat(true);
             });
         }
 
         document.getElementById('btn-link').addEventListener('click', () => {
             const pid = document.getElementById('partner-id').value.toUpperCase();
             if(!pid) return;
-            
             document.getElementById('btn-link').innerText = "CONNECTING...";
             const c = peer.connect(pid);
             handleConn(c);
         });
 
-        initNetwork();
-        
-        // Register SW update
+        init();
+
+        // SW Update
         if('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => reg.update());
         }
