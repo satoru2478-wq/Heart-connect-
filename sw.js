@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-debug-connect-v24'; 
+const CACHE_NAME = 'v-heart-icon-v25'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
