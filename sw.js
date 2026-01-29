@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-test-reset-v19'; 
+const CACHE_NAME = 'v-fix-tap-v20'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
