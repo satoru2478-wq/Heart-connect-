@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SOUL LINK STABLE</title>
+    <title>SOUL LINK V19</title>
     <link rel="manifest" href="./manifest.json">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
         
-        /* STEALTH LAYER */
-        #blackout {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100; display: none;
-        }
-
-        /* NOTIFICATION TEXT */
+        #blackout { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: none; }
+        
         #notify-text {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             color: #fff; font-size: 22px; font-weight: 300; letter-spacing: 6px;
@@ -22,7 +17,6 @@
             pointer-events: none; transition: opacity 1s; width: 100%; text-align: center;
         }
 
-        /* UI LAYER */
         #ui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -30,18 +24,12 @@
         }
 
         .glass-card {
-            background: rgba(15, 15, 15, 0.9); 
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding: 30px; border-radius: 24px; text-align: center; 
-            width: 80%; max-width: 320px;
-            box-shadow: 0 0 60px rgba(0,0,0,0.8);
+            background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px); padding: 30px; border-radius: 24px; text-align: center; 
+            width: 80%; max-width: 320px; position: relative;
         }
 
-        .title { color: #555; font-size: 10px; letter-spacing: 4px; margin-bottom: 20px; text-transform: uppercase; }
-        .key { font-size: 32px; color: #fff; font-weight: 200; letter-spacing: 3px; margin-bottom: 20px;}
-        
-        .status { margin-top: 15px; font-size: 10px; color: #444; letter-spacing: 1px; }
+        .status { margin-top: 15px; font-size: 10px; color: #555; letter-spacing: 1px; }
         .active-status { color: #00ff66; text-shadow: 0 0 10px #00ff66; }
         .error-status { color: #ff3333; text-shadow: 0 0 10px #ff3333; }
 
@@ -53,10 +41,15 @@
 
         button { 
             background: #fff; color: #000; border: none; padding: 12px; 
-            width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; 
+            width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 5px;
         }
 
-        /* ACTION BAR */
+        /* RESET BUTTON (Small at bottom) */
+        #btn-reset {
+            margin-top: 20px; font-size: 9px; color: #444; text-decoration: underline; 
+            cursor: pointer; background: none; border: none; padding: 5px;
+        }
+
         #action-bar {
             position: absolute; bottom: 30px; display: flex; gap: 20px; 
             z-index: 20; opacity: 0; pointer-events: none; transition: 1s;
@@ -70,6 +63,7 @@
         }
         .pink-glow { border-color: #ff66aa; color: #ff66aa; }
         .show { opacity: 1; pointer-events: auto; }
+        .hidden { display: none; }
         
         canvas { display: block; position: absolute; top:0; left:0; z-index: 1; }
     </style>
@@ -81,15 +75,22 @@
 
     <div id="ui">
         <div class="glass-card">
-            <div class="title">Soul Frequency</div>
-            <div id="my-id" class="key">...</div>
+            <div style="color:#666; font-size:10px; letter-spacing:3px; margin-bottom:15px;">SETUP SOUL LINK</div>
             
-            <div id="setup-box">
-                <input type="text" id="partner-id" placeholder="PARTNER KEY" maxlength="6">
-                <button id="btn-link">CONNECT PERMANENTLY</button>
+            <div id="step-1">
+                <input type="text" id="my-custom-id" placeholder="CREATE YOUR NAME" maxlength="10">
+                <button onclick="createMyId()">START</button>
+            </div>
+
+            <div id="step-2" class="hidden">
+                <div id="display-my-id" style="color:#fff; font-size:20px; margin-bottom:15px; letter-spacing:2px;">...</div>
+                <input type="text" id="partner-id" placeholder="PARTNER NAME" maxlength="10">
+                <button id="btn-link">CONNECT</button>
             </div>
             
-            <div id="status" class="status">v17 STABLE</div>
+            <div id="status" class="status">v19 READY</div>
+            
+            <button id="btn-reset" onclick="resetApp()">RESET IDENTITY</button>
         </div>
     </div>
 
@@ -103,201 +104,175 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <script>
-        // --- 1. CONFIG & AUDIO ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function trigger(type, isRemote) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            
-            // Visual Pulse
-            pulse = 1.0;
-            
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            if(type === 'touch') {
-                // HEAVY HEARTBEAT
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(60, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
-                gain.gain.setValueAtTime(1.0, now); // Max Volume
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                
-                // STRONG VIBRATION [Heavy, Pause, Heavy]
-                if(navigator.vibrate) {
-                    if(isRemote) navigator.vibrate([200, 50, 200]); 
-                    else navigator.vibrate(30);
-                }
-            } 
-            else if (type === 'miss') {
-                // MISS YOU SOUND
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 2);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 2);
-                
-                if(isRemote) {
-                    const txt = document.getElementById('notify-text');
-                    txt.style.opacity = 1;
-                    setTimeout(() => txt.style.opacity = 0, 4000);
-                }
-
-                if(navigator.vibrate && isRemote) navigator.vibrate([1000]); 
-            }
-
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 2);
-        }
-
-        // --- 2. STEALTH MODE ---
-        const blackout = document.getElementById('blackout');
-        const sleepBtn = document.getElementById('btn-sleep');
-        const ui = document.getElementById('ui');
-        let wakeLock = null;
-
-        sleepBtn.addEventListener('click', async () => {
-            blackout.style.display = 'block';
-            ui.classList.add('hidden'); // Use class to hide
-            ui.style.opacity = 0;
-            ui.style.pointerEvents = 'none';
-            document.getElementById('action-bar').classList.remove('show');
-            try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
-            if(navigator.vibrate) navigator.vibrate(50);
-        });
-
-        // Tap black screen to send
-        blackout.addEventListener('pointerdown', () => {
-            trigger('touch', false);
-            if(conn && conn.open) conn.send({type:'touch'});
-        });
-
-        // --- 3. CANVAS ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let w, h, cx, cy;
-        function resize() { w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight; cx=w/2; cy=h/2; }
-        window.addEventListener('resize', resize); resize();
-
-        let hue=0, pulse=0;
-        function draw() {
-            if(blackout.style.display === 'block') { requestAnimationFrame(draw); return; }
-
-            ctx.clearRect(0,0,w,h);
-            hue+=0.2;
-            let color = `hsl(${hue}, 60%, 50%)`;
-            if(pulse>0.01) color = `hsl(${hue}, 100%, ${50+pulse*50}%)`;
-
-            ctx.save(); ctx.translate(cx,cy);
-            const s = 60+(pulse*50);
-            
-            ctx.beginPath();
-            ctx.moveTo(0,-s*0.3); 
-            ctx.bezierCurveTo(-s*0.5,-s*0.8,-s,-s*0.5,-s,0);
-            ctx.bezierCurveTo(-s,s*0.5,-s*0.5,s*0.8,0,s*1.2);
-            ctx.bezierCurveTo(s*0.5,s*0.8,s,s*0.5,s,0);
-            ctx.bezierCurveTo(s,-s*0.5,s*0.5,-s*0.8,0,-s*0.3);
-            
-            ctx.shadowBlur=pulse*100; ctx.shadowColor=color; ctx.fillStyle=color; ctx.fill(); 
-            ctx.restore();
-
-            pulse*=0.92;
-            requestAnimationFrame(draw);
-        }
-        draw();
-
-        // --- 4. STABILIZED NETWORK (The Fix) ---
+        // --- 1. SETUP LOGIC ---
         let peer, conn;
-        let myId = localStorage.getItem('v-id') || Math.random().toString(36).substring(2,8).toUpperCase();
-        localStorage.setItem('v-id', myId);
-        
-        let savedPartner = localStorage.getItem('v-partner');
-        let pingInterval;
+        let savedMyId = localStorage.getItem('v-my-custom-id');
+        let savedPartnerId = localStorage.getItem('v-partner-custom-id');
 
-        peer = new Peer(myId, {
-            debug: 2,
-            config: {'iceServers': [
-                { url: 'stun:stun.l.google.com:19302' },
-                { url: 'stun:stun1.l.google.com:19302' }
-            ]}
-        });
-        
-        peer.on('open', (id) => {
-            document.getElementById('my-id').innerText = id;
-            if(savedPartner) {
-                document.getElementById('setup-box').style.display = 'none';
-                document.getElementById('status').innerText = "CONNECTING...";
-                connect(savedPartner);
+        // Restore ID if exists
+        if(savedMyId) {
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            document.getElementById('display-my-id').innerText = savedMyId;
+            initPeer(savedMyId);
+            
+            if(savedPartnerId) {
+                document.getElementById('partner-id').value = savedPartnerId;
+                setTimeout(() => connect(savedPartnerId), 1000); // Auto-connect
             }
-        });
+        }
 
-        peer.on('error', (err) => {
-            document.getElementById('status').innerText = "NETWORK ERROR: " + err.type;
-            document.getElementById('status').className = "status error-status";
-            // Auto retry on error
-            setTimeout(() => { if(savedPartner) connect(savedPartner); }, 3000);
-        });
+        function createMyId() {
+            const id = document.getElementById('my-custom-id').value.trim().toUpperCase();
+            if(!id) return alert("Enter a name!");
+            const cleanId = id.replace(/[^A-Z0-9]/g, '');
+            localStorage.setItem('v-my-custom-id', cleanId);
+            
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            document.getElementById('display-my-id').innerText = cleanId;
+            initPeer(cleanId);
+        }
+        
+        // RESET FUNCTION (For Testing)
+        function resetApp() {
+            if(confirm("Reset Identity? This will delete your name.")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
 
-        peer.on('connection', (c) => handle(c));
+        function initPeer(id) {
+            peer = new Peer(id, {
+                debug: 1,
+                config: {'iceServers': [
+                    { url: 'stun:stun.l.google.com:19302' },
+                    { url: 'stun:stun1.l.google.com:19302' }
+                ]}
+            });
+
+            peer.on('open', (id) => {
+                document.getElementById('status').innerText = "ONLINE AS: " + id;
+            });
+
+            peer.on('error', (err) => {
+                console.log(err);
+                if(err.type === 'unavailable-id') {
+                    document.getElementById('status').innerText = "ID IN USE (Check Tabs)";
+                } else if (err.type === 'peer-unavailable') {
+                    document.getElementById('status').innerText = "PARTNER NOT FOUND... RETRYING";
+                    document.getElementById('status').className = "status error-status";
+                    setTimeout(() => {
+                         if(savedPartnerId) connect(savedPartnerId);
+                    }, 3000);
+                } else {
+                    document.getElementById('status').innerText = "NET ERROR: " + err.type;
+                }
+            });
+
+            peer.on('connection', (c) => handle(c));
+        }
 
         document.getElementById('btn-link').addEventListener('click', () => {
-            const pid = document.getElementById('partner-id').value.toUpperCase();
+            const pid = document.getElementById('partner-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
             if(!pid) return;
-            localStorage.setItem('v-partner', pid);
+            localStorage.setItem('v-partner-custom-id', pid);
+            savedPartnerId = pid;
             connect(pid);
         });
 
         function connect(pid) {
+            document.getElementById('status').innerText = "SEARCHING FOR " + pid + "...";
             const c = peer.connect(pid);
             handle(c);
         }
 
+        let pingInterval;
         function handle(c) {
             conn = c;
             conn.on('open', () => {
-                document.getElementById('setup-box').style.display = 'none';
+                document.getElementById('step-2').style.display = 'none'; // Hide UI
                 document.getElementById('status').innerText = "CONNECTED FOREVER";
                 document.getElementById('status').className = "status active-status";
+                document.getElementById('btn-reset').style.display = 'none'; // Hide reset when connected
                 document.getElementById('action-bar').classList.add('show');
-                
                 trigger('touch', true);
 
-                // START KEEPALIVE (Ping every 5 seconds)
+                // KeepAlive
                 if(pingInterval) clearInterval(pingInterval);
-                pingInterval = setInterval(() => {
-                    if(conn && conn.open) conn.send({type:'ping'});
-                }, 5000);
+                pingInterval = setInterval(() => { if(conn.open) conn.send({type:'ping'}); }, 4000);
             });
 
             conn.on('data', (d) => {
                 if(d.type === 'touch') trigger('touch', true);
                 if(d.type === 'miss') trigger('miss', true);
-                if(d.type === 'ping') { /* Silent Ping received */ }
             });
 
             conn.on('close', () => {
-                document.getElementById('status').innerText = "LINK DROPPED. RETRYING...";
+                document.getElementById('status').innerText = "RECONNECTING...";
                 document.getElementById('status').className = "status error-status";
-                if(pingInterval) clearInterval(pingInterval);
-                setTimeout(() => connect(savedPartner), 2000); // Aggressive reconnect
+                setTimeout(() => connect(savedPartnerId), 2000);
             });
         }
 
-        document.getElementById('btn-miss').addEventListener('click', () => {
-            if(conn && conn.open) {
-                conn.send({type:'miss'});
-                if(navigator.vibrate) navigator.vibrate(50);
+        // --- 2. AUDIO & VIBE (STRONG) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function trigger(type, isRemote) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            pulse = 1.0;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            if(type === 'touch') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(60, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+                gain.gain.setValueAtTime(1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                // STRONG VIBE [200ms Hit, 50ms Pause, 200ms Hit]
+                if(navigator.vibrate) isRemote ? navigator.vibrate([200, 50, 200]) : navigator.vibrate(30);
+            } else if (type === 'miss') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 2);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+                if(isRemote) {
+                    const t = document.getElementById('notify-text'); t.style.opacity = 1; setTimeout(()=>t.style.opacity=0, 4000);
+                    if(navigator.vibrate) navigator.vibrate([1000]);
+                }
             }
-        });
+            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 2);
+        }
 
-        canvas.addEventListener('pointerdown', () => {
-            trigger('touch', false);
-            if(conn && conn.open) conn.send({type:'touch'});
+        // --- 3. STEALTH ---
+        const blackout = document.getElementById('blackout');
+        document.getElementById('btn-sleep').addEventListener('click', async () => {
+            blackout.style.display = 'block';
+            document.getElementById('ui').style.opacity = 0; document.getElementById('ui').style.pointerEvents='none';
+            document.getElementById('action-bar').classList.remove('show');
+            try { await navigator.wakeLock.request('screen'); } catch(e){}
+            if(navigator.vibrate) navigator.vibrate(50);
         });
+        blackout.addEventListener('pointerdown', () => { trigger('touch', false); if(conn&&conn.open) conn.send({type:'touch'}); });
         
-        if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(r => r.update());
+        document.getElementById('btn-miss').addEventListener('click', () => { if(conn&&conn.open) conn.send({type:'miss'}); if(navigator.vibrate) navigator.vibrate(50); });
 
+        const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+        let w, h, cx, cy; function resize(){w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight; cx=w/2; cy=h/2;} window.addEventListener('resize', resize); resize();
+        let hue=0, pulse=0;
+        function draw() {
+            if(blackout.style.display==='block'){requestAnimationFrame(draw);return;}
+            ctx.clearRect(0,0,w,h); hue+=0.2; let c=`hsl(${hue},60%,50%)`; if(pulse>0.01)c=`hsl(${hue},100%,${50+pulse*50}%)`;
+            ctx.save(); ctx.translate(cx,cy); const s=60+(pulse*50);
+            ctx.beginPath(); ctx.moveTo(0,-s*0.3); ctx.bezierCurveTo(-s*0.5,-s*0.8,-s,-s*0.5,-s,0);
+            ctx.bezierCurveTo(-s,s*0.5,-s*0.5,s*0.8,0,s*1.2); ctx.bezierCurveTo(s*0.5,s*0.8,s,s*0.5,s,0);
+            ctx.bezierCurveTo(s,-s*0.5,s*0.5,-s*0.8,0,-s*0.3);
+            ctx.shadowBlur=pulse*100; ctx.shadowColor=c; ctx.fillStyle=c; ctx.fill(); ctx.restore();
+            pulse*=0.92; requestAnimationFrame(draw);
+        }
+        draw();
+        
+        canvas.addEventListener('pointerdown', () => { trigger('touch', false); if(conn&&conn.open) conn.send({type:'touch'}); });
+
+        if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').then(r => r.update());
     </script>
 </body>
 </html>
