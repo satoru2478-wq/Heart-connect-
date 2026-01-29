@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-destroy-ui-v21'; 
+const CACHE_NAME = 'v-phoenix-auto-v23'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
