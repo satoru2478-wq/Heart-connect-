@@ -2,217 +2,246 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>LIQUID LINK</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>V-LINK 2D</title>
     <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; touch-action: none; }
         
-        /* OVERLAY UI */
-        #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; pointer-events: none; z-index: 10; color: rgba(255,255,255,0.6); display: flex; flex-direction: column; gap: 10px; }
+        /* START SCREEN */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #00aaff; cursor: pointer;
+        }
+        .blink { animation: flash 1s infinite; }
+        @keyframes flash { 50% { opacity: 0; } }
+
+        /* UI LAYER */
+        #ui {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
+            box-sizing: border-box; pointer-events: none; z-index: 10;
+        }
         .interactive { pointer-events: auto; }
         
-        .id-box { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); }
-        .big-id { font-size: 20px; color: #fff; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .panel {
+            background: rgba(0, 20, 30, 0.8); border: 1px solid #005577;
+            padding: 10px; border-radius: 4px; margin-bottom: 10px;
+            color: #fff; text-shadow: 0 0 5px #00aaff;
+        }
         
-        input { background: rgba(0,0,0,0.5); border: 1px solid #555; color: #fff; padding: 8px; border-radius: 4px; width: 120px; text-transform: uppercase; font-family: monospace; }
-        button { background: #fff; color: #000; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        input { background: #001122; border: 1px solid #005577; color: #fff; padding: 5px; width: 80px; text-transform: uppercase; }
+        button { background: #00aaff; color: #000; border: none; padding: 5px 10px; font-weight: bold; }
         
-        #tap-start { position: fixed; top:0; left:0; width:100%; height:100%; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; letter-spacing: 2px; cursor: pointer; }
+        #status { font-size: 10px; color: #555; margin-top: 5px; }
+        .connected { color: #0f0 !important; text-shadow: 0 0 10px #0f0; }
+
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="tap-start">TAP TO INITIALIZE FLUID ENGINE</div>
+    <div id="start-screen">
+        <div style="font-size: 50px;">⏻</div>
+        <div style="margin-top: 20px;" class="blink">TAP TO ACTIVATE SYSTEM</div>
+        <div id="error-log" style="font-size: 10px; color: red; margin-top: 20px; max-width: 80%;"></div>
+    </div>
 
-    <div id="ui">
-        <div class="id-box interactive">
-            <div style="font-size: 10px; margin-bottom: 5px;">UNIT ID</div>
-            <div id="my-id" class="big-id">...</div>
+    <div id="ui" style="display:none;">
+        <div class="panel interactive">
+            <div style="font-size: 10px; color: #888;">UNIT ID</div>
+            <div id="my-id" style="font-size: 18px; font-weight: bold;">GENERATING...</div>
         </div>
-        
-        <div class="id-box interactive">
-            <div style="font-size: 10px; margin-bottom: 5px;">LINK TO PARTNER</div>
-            <div style="display:flex; gap: 10px;">
-                <input type="text" id="target-id" placeholder="ENTER ID">
+
+        <div class="panel interactive">
+            <div style="font-size: 10px; color: #888;">TARGET CONNECTION</div>
+            <div style="display:flex; gap: 5px;">
+                <input type="text" id="partner-id" placeholder="ID">
                 <button id="btn-link">LINK</button>
             </div>
-            <div id="status" style="margin-top:5px; font-size: 10px; color: #888;">STATUS: OFFLINE</div>
+            <div id="status">STATUS: STANDBY</div>
         </div>
     </div>
 
-    <div id="canvas-container"></div>
+    <canvas id="canvas"></canvas>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
-    
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
-    </script>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    <script>
+        // --- ERROR LOGGING ---
+        function logError(msg) {
+            document.getElementById('error-log').innerText = "SYSTEM MSG: " + msg;
+        }
 
-        // --- 1. SETUP ---
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.z = 4;
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.enablePan = false;
-        controls.enableZoom = false;
-
-        // --- 2. THE FLUID DROPLET ---
-        // We use a high-detail sphere and modify its shape every frame
-        const geometry = new THREE.IcosahedronGeometry(1, 30); // High detail for smoothness
+        // --- 1. SETUP CANVAS (2D) ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, centerX, centerY;
         
-        // Custom Material to look like liquid/glass
-        const material = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
-            roughness: 0.1,
-            metalness: 0.1,
-            transmission: 0.9, // See-through like water
-            thickness: 1.0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.1,
-        });
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
 
-        const drop = new THREE.Mesh(geometry, material);
-        scene.add(drop);
-
-        // Internal Glow Sphere
-        const coreGeo = new THREE.IcosahedronGeometry(0.6, 10);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, wireframe: true, transparent: true, opacity: 0.3 });
-        const core = new THREE.Mesh(coreGeo, coreMat);
-        scene.add(core);
-
-        // Lighting
-        const light1 = new THREE.DirectionalLight(0xffffff, 2);
-        light1.position.set(1, 1, 2);
-        scene.add(light1);
-        const ambient = new THREE.AmbientLight(0x404040, 2);
-        scene.add(ambient);
-
-        // --- 3. FLUID ANIMATION LOGIC ---
-        const simplex = new SimplexNoise();
-        const originalPositions = geometry.attributes.position.array.slice(); // Copy original shape
-        let time = 0;
-        let spikeAmount = 0; // Controls how "agitated" the water is
-
-        function updateLiquid() {
-            time += 0.005;
-            spikeAmount *= 0.95; // Slowly calm down automatically
-
-            const positions = geometry.attributes.position.array;
-            const colorTime = Date.now() * 0.0005;
-
-            // Update Color (Rainbow Cycle)
-            const hue = (colorTime % 1); // Cycle 0 to 1
-            const color = new THREE.Color().setHSL(hue, 0.8, 0.5);
-            coreMat.color = color;
-            
-            // If agitated (touched), flash white/bright
-            if (spikeAmount > 0.1) {
-                material.emissive = color;
-                material.emissiveIntensity = spikeAmount * 0.5;
-            } else {
-                material.emissiveIntensity = 0;
-            }
-
-            // Deform the Sphere
-            for (let i = 0; i < positions.length; i += 3) {
-                const x = originalPositions[i];
-                const y = originalPositions[i + 1];
-                const z = originalPositions[i + 2];
-
-                // Create Noise (Wobble)
-                const v = new THREE.Vector3(x, y, z);
-                v.normalize();
-                
-                // Base wobble + Spike wobble
-                const noise = simplex.noise3D(x + time, y + time, z + time);
-                const distortion = 1 + (noise * (0.1 + spikeAmount * 0.4));
-
-                positions[i] = v.x * distortion;
-                positions[i + 1] = v.y * distortion;
-                positions[i + 2] = v.z * distortion;
-            }
-            geometry.attributes.position.needsUpdate = true;
-            geometry.computeVertexNormals(); // Keep lighting correct
+        // --- 2. AUDIO & VIBRATION ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function beep(freq = 600, type = 'sine') {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
         }
 
-        // --- 4. INTERACTION ---
-        function triggerRipple(isRemote) {
-            spikeAmount = 1.0; // Max agitation
+        // --- 3. ANIMATION LOGIC ---
+        let ripples = [];
+        let heartScale = 1;
+        let heartColor = '#00aaff'; // Blue
+        let isPulse = false;
+
+        function draw() {
+            // Clear Screen with fade effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            // 1. Draw Ripples
+            for(let i = ripples.length - 1; i >= 0; i--) {
+                const r = ripples[i];
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, r.size, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(${r.c}, ${r.life})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                r.size += 5; // Expand
+                r.life -= 0.02; // Fade
+                if(r.life <= 0) ripples.splice(i, 1);
+            }
+
+            // 2. Draw "Core" (The Heart)
+            const pulse = 1 + Math.sin(Date.now() * 0.003) * 0.1;
+            const size = 30 * heartScale * pulse;
             
-            // Haptics
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, size, 0, Math.PI * 2);
+            ctx.fillStyle = heartColor;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = heartColor;
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset
+
+            // 3. Reset effects slowly
+            if(heartScale > 1) heartScale *= 0.95;
+            if(isPulse && heartScale < 1.1) {
+                 heartColor = '#00aaff'; // Return to blue
+                 isPulse = false;
+            }
+
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        function triggerEffect(x, y, isRemote) {
+            // Add Ripple
+            const colorRGB = isRemote ? '255, 0, 85' : '0, 170, 255'; // Pink vs Blue
+            ripples.push({ x: x || centerX, y: y || centerY, size: 10, life: 1, c: colorRGB });
+            
+            // Pulse Core
+            heartScale = 2.0;
+            heartColor = isRemote ? '#ff0055' : '#ffffff';
+            isPulse = true;
+
+            // Audio/Haptic
+            beep(isRemote ? 800 : 400, isRemote ? 'square' : 'sine');
             if(navigator.vibrate) navigator.vibrate(isRemote ? [50, 50, 100] : 15);
+        }
+
+        // --- 4. START SEQUENCE ---
+        document.getElementById('start-screen').addEventListener('click', function() {
+            // Unlock Audio
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            beep(400); 
             
-            // Send to partner
-            if (!isRemote && conn) conn.send({ type: 'touch' });
-        }
-
-        window.addEventListener('mousedown', () => triggerRipple(false));
-        window.addEventListener('touchstart', (e) => {
-            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-                e.preventDefault();
-                triggerRipple(false);
-            }
-        }, { passive: false });
-
-        // --- 5. ANIMATION LOOP ---
-        function animate() {
-            requestAnimationFrame(animate);
-            updateLiquid();
-            drop.rotation.y += 0.002;
-            core.rotation.y -= 0.005;
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // --- 6. CONNECTION (PEERJS) ---
-        const peer = new Peer(); 
-        let conn = null;
-
-        peer.on('open', (id) => {
-            document.getElementById('my-id').innerText = id;
-            document.getElementById('tap-start').style.display = 'none'; // Auto hide if loaded
-        });
-
-        document.getElementById('tap-start').addEventListener('click', function() {
+            // Switch UI
             this.style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            
+            // Init Network
+            initNetwork();
         });
 
+        // --- 5. NETWORKING (PeerJS) ---
+        let peer, conn;
+
+        function initNetwork() {
+            try {
+                // Generate simple ID
+                const shortId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                peer = new Peer(shortId);
+
+                peer.on('open', (id) => {
+                    document.getElementById('my-id').innerText = id;
+                });
+
+                peer.on('error', (err) => {
+                    logError("NET ERROR: " + err.type);
+                    document.getElementById('status').innerText = "NET ERROR: RETRY";
+                });
+
+                peer.on('connection', (c) => {
+                    conn = c;
+                    setupConn();
+                });
+
+            } catch(e) {
+                logError(e.message);
+            }
+        }
+
+        // Connect Button
         document.getElementById('btn-link').addEventListener('click', () => {
-            const target = document.getElementById('target-id').value;
-            if(!target) return;
+            const pid = document.getElementById('partner-id').value.toUpperCase();
+            if(!pid) return alert("Enter ID");
             document.getElementById('btn-link').innerText = "...";
-            conn = peer.connect(target);
-            setupConn();
-        });
-
-        peer.on('connection', (c) => {
-            conn = c;
+            conn = peer.connect(pid);
             setupConn();
         });
 
         function setupConn() {
-            document.getElementById('status').innerText = "STATUS: CONNECTED";
-            document.getElementById('status').style.color = "#0f0";
+            document.getElementById('status').innerText = "LINK ESTABLISHED";
+            document.getElementById('status').className = "connected";
             document.getElementById('btn-link').innerText = "LINKED";
             
+            // Send a test ping
+            triggerEffect(centerX, centerY, true);
+
             conn.on('data', (data) => {
-                if(data.type === 'touch') triggerRipple(true);
+                if(data.type === 'touch') triggerEffect(centerX, centerY, true);
             });
         }
+
+        // --- 6. INPUT HANDLING ---
+        window.addEventListener('pointerdown', (e) => {
+            // Ignore if clicking UI
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            
+            triggerEffect(e.clientX, e.clientY, false);
+            
+            if(conn && conn.open) {
+                conn.send({ type: 'touch' });
+            }
+        });
 
     </script>
 </body>
