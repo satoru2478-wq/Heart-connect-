@@ -3,211 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>V-LINK STABLE</title>
+    <title>LIQUID LINK</title>
     <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: white; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; user-select: none; }
         
-        /* ERROR LOG (For Debugging) */
-        #console-log { position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: rgba(20,0,0,0.8); color: #ff5555; font-size: 10px; overflow-y: scroll; z-index: 100; pointer-events: none; padding: 5px; display: none; }
-
-        /* UI */
-        #ui { position: absolute; top: 0; width: 100%; padding: 15px; box-sizing: border-box; z-index: 10; pointer-events: none; }
+        /* OVERLAY UI */
+        #ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; pointer-events: none; z-index: 10; color: rgba(255,255,255,0.6); display: flex; flex-direction: column; gap: 10px; }
         .interactive { pointer-events: auto; }
         
-        .box { background: rgba(0, 20, 40, 0.9); border: 1px solid #00aaff; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-        .big-text { font-size: 20px; color: #00aaff; font-weight: bold; text-shadow: 0 0 10px #00aaff; letter-spacing: 2px; }
-        .label { font-size: 10px; color: #888; margin-bottom: 5px; }
-
-        input { background: #000; border: 1px solid #555; color: white; padding: 8px; width: 100px; text-transform: uppercase; }
-        button { background: #00aaff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; }
+        .id-box { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); }
+        .big-id { font-size: 20px; color: #fff; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
         
-        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 50; display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; }
+        input { background: rgba(0,0,0,0.5); border: 1px solid #555; color: #fff; padding: 8px; border-radius: 4px; width: 120px; text-transform: uppercase; font-family: monospace; }
+        button { background: #fff; color: #000; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         
-        .green-status { color: #0f0; text-shadow: 0 0 5px #0f0; }
+        #tap-start { position: fixed; top:0; left:0; width:100%; height:100%; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; letter-spacing: 2px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="console-log"></div>
-
-    <div id="start-screen">
-        <div style="font-size: 40px; margin-bottom: 20px;">◉</div>
-        <div>TAP TO ACTIVATE</div>
-        <div style="font-size: 10px; color: #555; margin-top: 10px;">V-SYSTEM v4.0</div>
-    </div>
+    <div id="tap-start">TAP TO INITIALIZE FLUID ENGINE</div>
 
     <div id="ui">
-        <div class="box interactive">
-            <div class="label">YOUR UNIT ID</div>
-            <div id="my-id" class="big-text">CONNECTING...</div>
+        <div class="id-box interactive">
+            <div style="font-size: 10px; margin-bottom: 5px;">UNIT ID</div>
+            <div id="my-id" class="big-id">...</div>
         </div>
-
-        <div class="box interactive">
-            <div class="label">TARGET ID</div>
+        
+        <div class="id-box interactive">
+            <div style="font-size: 10px; margin-bottom: 5px;">LINK TO PARTNER</div>
             <div style="display:flex; gap: 10px;">
-                <input type="text" id="partner-id" placeholder="ENTER ID">
+                <input type="text" id="target-id" placeholder="ENTER ID">
                 <button id="btn-link">LINK</button>
             </div>
-            <div id="status" style="margin-top: 10px; font-size: 12px; color: #666;">STATUS: WAITING</div>
+            <div id="status" style="margin-top:5px; font-size: 10px; color: #888;">STATUS: OFFLINE</div>
         </div>
     </div>
 
-    <div id="canvas-container" style="position:fixed; top:0; left:0; width:100vw; height:100vh;"></div>
+    <div id="canvas-container"></div>
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    
     <script type="importmap">
-      { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
-    </script>
-
-    <script>
-        // ON-SCREEN LOGGER
-        function log(msg) {
-            console.log(msg);
-            const div = document.getElementById('console-log');
-            div.style.display = 'block';
-            div.innerHTML += `> ${msg}<br>`;
-            div.scrollTop = div.scrollHeight;
-        }
-        window.onerror = function(msg, source, lineno) {
-            log(`ERROR: ${msg} at line ${lineno}`);
-        };
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- 1. SAFE 3D INIT ---
-        log("Initializing 3D Engine...");
-        
+        // --- 1. SETUP ---
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.z = 5;
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.z = 4;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // CREATE QUANTUM KNOT (Guaranteed to work)
-        const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0x00aaff, 
-            wireframe: true,
-            transparent: true, opacity: 0.6
-        });
-        const knot = new THREE.Mesh(geometry, material);
-        scene.add(knot);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.enableZoom = false;
 
-        // Inner Glow
-        const coreGeo = new THREE.SphereGeometry(0.5, 16, 16);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+        // --- 2. THE FLUID DROPLET ---
+        // We use a high-detail sphere and modify its shape every frame
+        const geometry = new THREE.IcosahedronGeometry(1, 30); // High detail for smoothness
+        
+        // Custom Material to look like liquid/glass
+        const material = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            roughness: 0.1,
+            metalness: 0.1,
+            transmission: 0.9, // See-through like water
+            thickness: 1.0,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1,
+        });
+
+        const drop = new THREE.Mesh(geometry, material);
+        scene.add(drop);
+
+        // Internal Glow Sphere
+        const coreGeo = new THREE.IcosahedronGeometry(0.6, 10);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, wireframe: true, transparent: true, opacity: 0.3 });
         const core = new THREE.Mesh(coreGeo, coreMat);
         scene.add(core);
 
+        // Lighting
+        const light1 = new THREE.DirectionalLight(0xffffff, 2);
+        light1.position.set(1, 1, 2);
+        scene.add(light1);
+        const ambient = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambient);
+
+        // --- 3. FLUID ANIMATION LOGIC ---
+        const simplex = new SimplexNoise();
+        const originalPositions = geometry.attributes.position.array.slice(); // Copy original shape
+        let time = 0;
+        let spikeAmount = 0; // Controls how "agitated" the water is
+
+        function updateLiquid() {
+            time += 0.005;
+            spikeAmount *= 0.95; // Slowly calm down automatically
+
+            const positions = geometry.attributes.position.array;
+            const colorTime = Date.now() * 0.0005;
+
+            // Update Color (Rainbow Cycle)
+            const hue = (colorTime % 1); // Cycle 0 to 1
+            const color = new THREE.Color().setHSL(hue, 0.8, 0.5);
+            coreMat.color = color;
+            
+            // If agitated (touched), flash white/bright
+            if (spikeAmount > 0.1) {
+                material.emissive = color;
+                material.emissiveIntensity = spikeAmount * 0.5;
+            } else {
+                material.emissiveIntensity = 0;
+            }
+
+            // Deform the Sphere
+            for (let i = 0; i < positions.length; i += 3) {
+                const x = originalPositions[i];
+                const y = originalPositions[i + 1];
+                const z = originalPositions[i + 2];
+
+                // Create Noise (Wobble)
+                const v = new THREE.Vector3(x, y, z);
+                v.normalize();
+                
+                // Base wobble + Spike wobble
+                const noise = simplex.noise3D(x + time, y + time, z + time);
+                const distortion = 1 + (noise * (0.1 + spikeAmount * 0.4));
+
+                positions[i] = v.x * distortion;
+                positions[i + 1] = v.y * distortion;
+                positions[i + 2] = v.z * distortion;
+            }
+            geometry.attributes.position.needsUpdate = true;
+            geometry.computeVertexNormals(); // Keep lighting correct
+        }
+
+        // --- 4. INTERACTION ---
+        function triggerRipple(isRemote) {
+            spikeAmount = 1.0; // Max agitation
+            
+            // Haptics
+            if(navigator.vibrate) navigator.vibrate(isRemote ? [50, 50, 100] : 15);
+            
+            // Send to partner
+            if (!isRemote && conn) conn.send({ type: 'touch' });
+        }
+
+        window.addEventListener('mousedown', () => triggerRipple(false));
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+                triggerRipple(false);
+            }
+        }, { passive: false });
+
+        // --- 5. ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            knot.rotation.x += 0.01;
-            knot.rotation.y += 0.013;
-            // Pulse core
-            const s = 1 + Math.sin(Date.now() * 0.005) * 0.2;
-            core.scale.set(s, s, s);
+            updateLiquid();
+            drop.rotation.y += 0.002;
+            core.rotation.y -= 0.005;
+            controls.update();
             renderer.render(scene, camera);
         }
         animate();
-        log("3D Engine Running.");
 
-        // --- 2. AUDIO & HAPTICS ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function playTone() {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
-        }
-
-        // --- 3. CONNECTION (PEERJS) ---
-        log("Connecting to Network...");
+        // --- 6. CONNECTION (PEERJS) ---
         const peer = new Peer(); 
         let conn = null;
 
         peer.on('open', (id) => {
-            log("ID Generated: " + id);
-            // We just show the LAST 6 chars to keep it simple, 
-            // but internally use the full ID for connection logic if needed,
-            // or better yet, just display the full ID to be safe for now.
-            // Let's shorten it for display but keep full id for safety.
-            const shortID = id.split('-')[0].toUpperCase(); 
-            document.getElementById('my-id').innerText = id; 
-            document.getElementById('my-id').style.fontSize = "12px"; // Smaller font for long ID
+            document.getElementById('my-id').innerText = id;
+            document.getElementById('tap-start').style.display = 'none'; // Auto hide if loaded
         });
 
-        peer.on('error', (err) => log("Peer Error: " + err.type));
+        document.getElementById('tap-start').addEventListener('click', function() {
+            this.style.display = 'none';
+        });
 
-        // CONNECT BUTTON
         document.getElementById('btn-link').addEventListener('click', () => {
-            const pid = document.getElementById('partner-id').value;
-            if(!pid) return alert("Enter ID");
-            log("Connecting to " + pid);
-            conn = peer.connect(pid);
+            const target = document.getElementById('target-id').value;
+            if(!target) return;
+            document.getElementById('btn-link').innerText = "...";
+            conn = peer.connect(target);
             setupConn();
         });
 
         peer.on('connection', (c) => {
             conn = c;
-            log("Incoming Connection!");
             setupConn();
         });
 
         function setupConn() {
-            document.getElementById('status').innerHTML = "<span class='green-status'>CONNECTED & SECURE</span>";
-            playTone();
+            document.getElementById('status').innerText = "STATUS: CONNECTED";
+            document.getElementById('status').style.color = "#0f0";
+            document.getElementById('btn-link').innerText = "LINKED";
             
             conn.on('data', (data) => {
-                if(data.type === 'touch') triggerEffect(true);
+                if(data.type === 'touch') triggerRipple(true);
             });
         }
-
-        // --- 4. INTERACTION ---
-        function triggerEffect(isRemote) {
-            // Visual
-            material.color.setHex(0xff0055); // Pink
-            coreMat.color.setHex(0xff0055);
-            
-            // Audio/Haptic
-            playTone();
-            if(navigator.vibrate) navigator.vibrate(200);
-
-            // Reset
-            setTimeout(() => {
-                material.color.setHex(0x00aaff); // Blue
-                coreMat.color.setHex(0x00aaff);
-            }, 300);
-
-            // Send
-            if(!isRemote && conn) conn.send({ type: 'touch' });
-        }
-
-        // TAP HANDLER
-        document.getElementById('start-screen').addEventListener('click', () => {
-            document.getElementById('start-screen').style.display = 'none';
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            log("System Active.");
-        });
-
-        window.addEventListener('mousedown', () => triggerEffect(false));
-        window.addEventListener('touchstart', (e) => {
-            if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-                triggerEffect(false);
-            }
-        });
 
     </script>
 </body>
