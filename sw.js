@@ -1,27 +1,18 @@
-const CACHE_NAME = 'v-connect-v5'; // Changing this forces the update
+const CACHE_NAME = 'v-soul-v6'; // New version ID
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
-  self.skipWaiting(); // Force new service worker to take over immediately
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES)),
-  );
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(FILES)));
 });
 
 self.addEventListener('activate', (e) => {
-  // Delete old caches
-  e.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.map((key) => {
-        if (key !== CACHE_NAME) return caches.delete(key);
-      })
-    ))
-  );
+  e.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.map((k) => k !== CACHE_NAME && caches.delete(k))
+  )));
   return self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
