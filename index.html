@@ -3,54 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GLASS HEART v8</title> <link rel="manifest" href="./manifest.json">
-    <script>
-        // --- KILL SWITCH: FORCE UPDATE ---
-        // This deletes the old "Offline Mode" so you get fresh code
-        if(window.navigator && navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations()
-            .then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
-                }
-            });
-            caches.keys().then(names => {
-                for (let name of names) caches.delete(name);
-            });
-        }
-    </script>
+    <title>VOID HEART</title>
+    <link rel="manifest" href="./manifest.json">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
+        /* PURE BLACK BACKGROUND */
+        body { margin: 0; overflow: hidden; background: #000000; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
         
-        /* BACKGROUND */
-        #bg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #1a1a2e 0%, #000 100%);
-            z-index: -1;
-        }
-
-        /* GLASS UI */
         #ui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 10; transition: opacity 1s;
         }
 
+        /* DARKER GLASS UI */
         .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(10, 10, 10, 0.6); /* Much darker glass */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             padding: 40px; border-radius: 20px;
-            text-align: center; width: 80%; max-width: 300px;
+            text-align: center; width: 85%; max-width: 300px;
         }
 
-        .key { font-size: 30px; color: #fff; letter-spacing: 5px; margin: 20px 0; font-weight: 300; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
-        .label { color: #888; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+        .key { font-size: 32px; color: #fff; letter-spacing: 4px; margin: 25px 0; font-weight: 300; opacity: 0.9; }
+        .label { color: #555; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
 
-        input { background: rgba(0,0,0,0.5); border: 1px solid #444; color: #fff; padding: 15px; width: 100%; border-radius: 10px; text-align: center; font-size: 18px; margin-bottom: 10px; outline: none; box-sizing: border-box; text-transform: uppercase; }
+        input { 
+            background: #000; border: 1px solid #333; color: #fff; padding: 15px; 
+            width: 100%; border-radius: 12px; text-align: center; font-size: 18px; 
+            margin-bottom: 15px; outline: none; box-sizing: border-box; text-transform: uppercase; 
+        }
         
-        button { background: #fff; color: #000; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        button { 
+            background: #222; color: #fff; border: 1px solid #444; 
+            padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; 
+            cursor: pointer; letter-spacing: 1px;
+        }
 
         .hidden { opacity: 0; pointer-events: none; }
 
@@ -59,16 +47,14 @@
 </head>
 <body>
 
-    <div id="bg"></div>
-
     <div id="ui">
         <div class="glass">
-            <div class="label">Your Frequency</div>
+            <div class="label">Unit Key</div>
             <div id="my-id" class="key">...</div>
             
             <input type="text" id="partner-id" placeholder="PARTNER KEY" maxlength="6">
             <button id="btn-link">CONNECT</button>
-            <div id="status" style="margin-top:15px; font-size: 10px; color: #555;">v8.0 READY</div>
+            <div id="status" style="margin-top:20px; font-size: 10px; color: #333;">v9.0 DARK MODE</div>
         </div>
     </div>
 
@@ -90,49 +76,96 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- AUDIO ---
+        // --- HEAVY HEARTBEAT AUDIO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playChime() {
+        
+        function playHeartbeat() {
             if(audioCtx.state === 'suspended') audioCtx.resume();
             const now = audioCtx.currentTime;
-            [349.23, 440.00, 523.25].forEach(f => {
-                const o = audioCtx.createOscillator();
-                const g = audioCtx.createGain();
-                o.type = 'sine'; o.frequency.value = f;
-                g.gain.setValueAtTime(0, now);
-                g.gain.linearRampToValueAtTime(0.1, now + 0.1);
-                g.gain.exponentialRampToValueAtTime(0.001, now + 2);
-                o.connect(g); g.connect(audioCtx.destination);
-                o.start(now); o.stop(now + 2);
-            });
+            
+            // OSC 1: The "LUB" (Deep Thud)
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            
+            osc.type = 'triangle'; 
+            osc.frequency.setValueAtTime(60, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+            
+            filter.type = 'lowpass';
+            filter.frequency.value = 120; // Muffles the sound to make it deep
+
+            gain.gain.setValueAtTime(1.0, now); // Max Volume
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(now);
+            osc.stop(now + 0.2);
+
+            // OSC 2: The "DUB" (Secondary Echo)
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            const filter2 = audioCtx.createBiquadFilter();
+
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(50, now + 0.15);
+            osc2.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+            
+            filter2.type = 'lowpass';
+            filter2.frequency.value = 100;
+
+            gain2.gain.setValueAtTime(0.6, now + 0.15);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+            osc2.connect(filter2);
+            filter2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+
+            osc2.start(now + 0.15);
+            osc2.stop(now + 0.45);
         }
 
-        // --- HEART ---
+        // --- HEART VISUALS ---
         let hue = 0;
         let pulse = 0;
 
         function draw() {
+            // Pure Black Clear (No trails)
             ctx.clearRect(0, 0, w, h);
-            hue += 0.2;
-            let color = `hsl(${hue}, 60%, 60%)`;
-            if(pulse > 0.01) color = `hsl(${hue}, 90%, ${60 + pulse * 30}%)`;
+            
+            // Color Logic
+            hue += 0.2; 
+            let color = `hsl(${hue}, 70%, 50%)`; // Slightly darker base color
+            if(pulse > 0.01) {
+                // Flash Bright on touch
+                color = `hsl(${hue}, 100%, ${50 + (pulse * 50)}%)`; 
+            }
 
             ctx.save();
             ctx.translate(cx, cy);
-            const scale = 50 + (pulse * 30);
+            
+            // Pulse Scale
+            const scale = 50 + (pulse * 40); 
+            
             ctx.beginPath();
+            // Heart Shape
             ctx.moveTo(0, -scale * 0.3);
             ctx.bezierCurveTo(-scale * 0.5, -scale * 0.8, -scale, -scale * 0.5, -scale, 0);
             ctx.bezierCurveTo(-scale, scale * 0.5, -scale * 0.5, scale * 0.8, 0, scale * 1.2);
             ctx.bezierCurveTo(scale * 0.5, scale * 0.8, scale, scale * 0.5, scale, 0);
             ctx.bezierCurveTo(scale, -scale * 0.5, scale * 0.5, -scale * 0.8, 0, -scale * 0.3);
-            ctx.fillStyle = color;
-            ctx.shadowBlur = 40 + pulse * 40;
+            
+            // Glow (Only appears when pulsing)
+            ctx.shadowBlur = pulse * 100;
             ctx.shadowColor = color;
+            ctx.fillStyle = color;
             ctx.fill();
             ctx.restore();
 
-            pulse *= 0.94;
+            pulse *= 0.92; // Decay
             requestAnimationFrame(draw);
         }
         draw();
@@ -140,8 +173,13 @@
         // --- INTERACTION ---
         function trigger(isRemote) {
             pulse = 1.0;
-            playChime();
-            if(navigator.vibrate) navigator.vibrate(200);
+            playHeartbeat();
+            
+            // MAX VIBRATION PATTERN
+            // [Thud, wait, Thud] -> 200ms is heavy
+            if(navigator.vibrate) {
+                navigator.vibrate([200, 50, 200]); 
+            }
         }
 
         window.addEventListener('pointerdown', (e) => {
@@ -153,6 +191,7 @@
 
         // --- CONNECT ---
         let peer, conn;
+        // Generate ID
         const id = Math.random().toString(36).substring(2, 8).toUpperCase();
         peer = new Peer(id);
         
@@ -174,6 +213,12 @@
             });
             conn.on('data', () => trigger(true));
         }
+        
+        // Update SW
+        if('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').then(reg => reg.update());
+        }
+
     </script>
 </body>
 </html>
