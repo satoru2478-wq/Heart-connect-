@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SOUL LINK V19</title>
+    <title>SOUL LINK V20</title>
     <link rel="manifest" href="./manifest.json">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; user-select: none; }
@@ -17,11 +17,16 @@
             pointer-events: none; transition: opacity 1s; width: 100%; text-align: center;
         }
 
+        /* UI LAYER - Now transitions opacity */
         #ui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; transition: opacity 0.5s;
+            z-index: 10; transition: opacity 1s ease-in-out;
+            pointer-events: auto; /* Default: blocks taps */
         }
+
+        /* Class to hide UI and let taps pass through */
+        .fade-out { opacity: 0 !important; pointer-events: none !important; }
 
         .glass-card {
             background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(255,255,255,0.1);
@@ -44,7 +49,6 @@
             width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 5px;
         }
 
-        /* RESET BUTTON (Small at bottom) */
         #btn-reset {
             margin-top: 20px; font-size: 9px; color: #444; text-decoration: underline; 
             cursor: pointer; background: none; border: none; padding: 5px;
@@ -88,8 +92,7 @@
                 <button id="btn-link">CONNECT</button>
             </div>
             
-            <div id="status" class="status">v19 READY</div>
-            
+            <div id="status" class="status">v20 AUTO-HIDE</div>
             <button id="btn-reset" onclick="resetApp()">RESET IDENTITY</button>
         </div>
     </div>
@@ -109,7 +112,6 @@
         let savedMyId = localStorage.getItem('v-my-custom-id');
         let savedPartnerId = localStorage.getItem('v-partner-custom-id');
 
-        // Restore ID if exists
         if(savedMyId) {
             document.getElementById('step-1').classList.add('hidden');
             document.getElementById('step-2').classList.remove('hidden');
@@ -118,7 +120,7 @@
             
             if(savedPartnerId) {
                 document.getElementById('partner-id').value = savedPartnerId;
-                setTimeout(() => connect(savedPartnerId), 1000); // Auto-connect
+                setTimeout(() => connect(savedPartnerId), 1000);
             }
         }
 
@@ -127,49 +129,26 @@
             if(!id) return alert("Enter a name!");
             const cleanId = id.replace(/[^A-Z0-9]/g, '');
             localStorage.setItem('v-my-custom-id', cleanId);
-            
             document.getElementById('step-1').classList.add('hidden');
             document.getElementById('step-2').classList.remove('hidden');
             document.getElementById('display-my-id').innerText = cleanId;
             initPeer(cleanId);
         }
         
-        // RESET FUNCTION (For Testing)
         function resetApp() {
-            if(confirm("Reset Identity? This will delete your name.")) {
-                localStorage.clear();
-                location.reload();
-            }
+            if(confirm("Reset Identity?")) { localStorage.clear(); location.reload(); }
         }
 
         function initPeer(id) {
-            peer = new Peer(id, {
-                debug: 1,
-                config: {'iceServers': [
-                    { url: 'stun:stun.l.google.com:19302' },
-                    { url: 'stun:stun1.l.google.com:19302' }
-                ]}
-            });
-
-            peer.on('open', (id) => {
-                document.getElementById('status').innerText = "ONLINE AS: " + id;
-            });
-
+            peer = new Peer(id, { debug: 1 });
+            peer.on('open', (id) => document.getElementById('status').innerText = "ONLINE AS: " + id);
             peer.on('error', (err) => {
-                console.log(err);
-                if(err.type === 'unavailable-id') {
-                    document.getElementById('status').innerText = "ID IN USE (Check Tabs)";
-                } else if (err.type === 'peer-unavailable') {
+                if(err.type === 'peer-unavailable') {
                     document.getElementById('status').innerText = "PARTNER NOT FOUND... RETRYING";
                     document.getElementById('status').className = "status error-status";
-                    setTimeout(() => {
-                         if(savedPartnerId) connect(savedPartnerId);
-                    }, 3000);
-                } else {
-                    document.getElementById('status').innerText = "NET ERROR: " + err.type;
-                }
+                    setTimeout(() => { if(savedPartnerId) connect(savedPartnerId); }, 3000);
+                } else document.getElementById('status').innerText = "NET ERROR: " + err.type;
             });
-
             peer.on('connection', (c) => handle(c));
         }
 
@@ -182,7 +161,7 @@
         });
 
         function connect(pid) {
-            document.getElementById('status').innerText = "SEARCHING FOR " + pid + "...";
+            document.getElementById('status').innerText = "SEARCHING...";
             const c = peer.connect(pid);
             handle(c);
         }
@@ -191,14 +170,19 @@
         function handle(c) {
             conn = c;
             conn.on('open', () => {
-                document.getElementById('step-2').style.display = 'none'; // Hide UI
+                // VISUAL FEEDBACK
                 document.getElementById('status').innerText = "CONNECTED FOREVER";
                 document.getElementById('status').className = "status active-status";
-                document.getElementById('btn-reset').style.display = 'none'; // Hide reset when connected
-                document.getElementById('action-bar').classList.add('show');
+                document.getElementById('btn-reset').style.display = 'none';
+
+                // THE FIX: Hide UI after 1.5 seconds so you can tap!
+                setTimeout(() => {
+                    document.getElementById('ui').classList.add('fade-out');
+                    document.getElementById('action-bar').classList.add('show');
+                }, 1500);
+
                 trigger('touch', true);
 
-                // KeepAlive
                 if(pingInterval) clearInterval(pingInterval);
                 pingInterval = setInterval(() => { if(conn.open) conn.send({type:'ping'}); }, 4000);
             });
@@ -209,13 +193,15 @@
             });
 
             conn.on('close', () => {
+                // If disconnected, show UI again to show status
+                document.getElementById('ui').classList.remove('fade-out');
                 document.getElementById('status').innerText = "RECONNECTING...";
                 document.getElementById('status').className = "status error-status";
                 setTimeout(() => connect(savedPartnerId), 2000);
             });
         }
 
-        // --- 2. AUDIO & VIBE (STRONG) ---
+        // --- 2. AUDIO & VIBE ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function trigger(type, isRemote) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -228,7 +214,6 @@
                 osc.type = 'triangle'; osc.frequency.setValueAtTime(60, now);
                 osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
                 gain.gain.setValueAtTime(1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                // STRONG VIBE [200ms Hit, 50ms Pause, 200ms Hit]
                 if(navigator.vibrate) isRemote ? navigator.vibrate([200, 50, 200]) : navigator.vibrate(30);
             } else if (type === 'miss') {
                 osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
@@ -242,17 +227,15 @@
             osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 2);
         }
 
-        // --- 3. STEALTH ---
+        // --- 3. CANVAS ---
         const blackout = document.getElementById('blackout');
         document.getElementById('btn-sleep').addEventListener('click', async () => {
             blackout.style.display = 'block';
-            document.getElementById('ui').style.opacity = 0; document.getElementById('ui').style.pointerEvents='none';
             document.getElementById('action-bar').classList.remove('show');
             try { await navigator.wakeLock.request('screen'); } catch(e){}
             if(navigator.vibrate) navigator.vibrate(50);
         });
         blackout.addEventListener('pointerdown', () => { trigger('touch', false); if(conn&&conn.open) conn.send({type:'touch'}); });
-        
         document.getElementById('btn-miss').addEventListener('click', () => { if(conn&&conn.open) conn.send({type:'miss'}); if(navigator.vibrate) navigator.vibrate(50); });
 
         const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
