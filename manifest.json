@@ -1,16 +1,15 @@
 {
-  "name": "V-Test",
-  "short_name": "V-Test",
+  "name": "VD",
+  "short_name": "VD",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2913/2913604.png",
-      "sizes": "192x192",
+      "src": "https://cdn-icons-png.flaticon.com/512/1077/1077035.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
 }
-
