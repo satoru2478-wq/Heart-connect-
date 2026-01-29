@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v-fix-tap-v20'; 
+const CACHE_NAME = 'v-destroy-ui-v21'; 
 const FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
